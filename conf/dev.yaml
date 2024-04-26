@@ -1,0 +1,42 @@
+#开发 dev / 测试 test / 生产 prod
+runmode: dev
+gormlog: false # 打印所有sql
+# 最大上传大小单位MB
+upload_dir: uploads
+upload_max_size: 5
+file_url: https://tststatic.synolux.local
+# 是否启用验证码
+enable_captcha: true
+
+chat_gpt_api: 
+
+# twilio
+twilio_sid: 
+twilio_token: 
+twilio_from: 
+
+# smtp
+mail_host: smtp.mailgun.org
+mail_port: 587
+mail_username: 
+mail_password: 
+mail_from_address: 
+mail_from_name: synolux
+
+db:
+  driverName: mysql
+  addr: 127.0.0.1:3306
+  name: synolux
+  username: 
+  password: 
+  charset: utf8
+  prefix: kk_
+log:
+  writers: file,stdout          #输出位置，有两个可选项 —— file 和 stdout,选择 file 会将日志记录到 `logger_file` 指定的日志文件中，选择 stdout 会将日志输出到标准输出
+  logger_level: DEBUG           #日志级别，DEBUG、INFO、WARN、ERROR、FATAL
+  logger_file: logs/app.log #指定日志文件
+  log_format_text: false        #日志的输出格式，JSON 或者 plaintext，`true` 会输出成非 JSON 格式，`false` 会输出成 JSON 格式
+  rollingPolicy: daily           #rotate 依据，可选的有 daily 和 size。如果选 daily 则根据天进行转存，如果是 size 则根据大小进行转存
+  log_rotate_date: 1            #rotate 转存时间，配 合`rollingPolicy: daily` 使用
+  log_rotate_size: 1            #rotate 转存大小，配合 `rollingPolicy: size` 使用
+  log_backup_count: 7           #当日志文件达到转存标准时，log 系统会将该日志文件进行压缩备份，这里指定了备份文件的最大个数
