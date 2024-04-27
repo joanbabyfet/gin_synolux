@@ -1,9 +1,6 @@
 package admin
 
 import (
-	"fmt"
-	"gin-synolux/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,11 +32,7 @@ func (c *TestController) Test(ctx *gin.Context) {
 	//加载html
 	//ctx.HTML(http.StatusOK, "index.html", nil)
 	//fmt.Println(viper.GetString("runmode"))
-	fmt.Println(utils.UniqueId())
+	//fmt.Println(utils.UniqueId())
 
 	c.SuccessJson(ctx, "success", nil)
-}
-
-func MD5(microtime string) {
-	panic("unimplemented")
 }

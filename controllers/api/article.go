@@ -1,13 +1,16 @@
 package controllers
 
 import (
+	"encoding/json"
 	"gin-synolux/dto"
 	"gin-synolux/models"
 	"gin-synolux/service"
+	"gin-synolux/utils"
 	"strconv"
 
 	"github.com/beego/beego/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 )
 
 type ArticleController struct {
@@ -74,11 +77,22 @@ func (c *ArticleController) Detail(ctx *gin.Context) {
 		}
 	}
 
-	service_article := new(service.ArticleService)
-	info, err := service_article.GetById(id)
-	if err != nil {
-		c.ErrorJson(ctx, -2, err.Error(), nil)
-		return
+	//redis缓存
+	info := new(models.Article)
+	cache_key := "article:id:" + strconv.Itoa(id)
+	v, err := utils.Redis.Get(cache_key).Result()
+	if err == redis.Nil {
+		//redis不存在则跟库拿
+		service_article := new(service.ArticleService)
+		info, err = service_article.GetById(id)
+		if err != nil {
+			c.ErrorJson(ctx, -2, err.Error(), nil)
+			return
+		}
+		str, _ := json.Marshal(&info)                //struct转成json字符串, 返回[]byte
+		utils.Redis.SetNX(cache_key, string(str), 0) //永不过期
+	} else {
+		json.Unmarshal([]byte(v), &info) //json字符串转成struct
 	}
 	c.SuccessJson(ctx, "success", info)
 }

@@ -12,7 +12,9 @@ type Database struct {
 	Self *gorm.DB
 }
 
-var DB *Database
+var (
+	DB *Database
+)
 
 func (db *Database) Init() {
 	DB = &Database{

@@ -31,6 +31,10 @@ db:
   password: 
   charset: utf8
   prefix: kk_
+redis:
+  host: 127.0.0.1:6379
+  database: 0
+  password: 
 log:
   writers: file,stdout          #输出位置，有两个可选项 —— file 和 stdout,选择 file 会将日志记录到 `logger_file` 指定的日志文件中，选择 stdout 会将日志输出到标准输出
   logger_level: DEBUG           #日志级别，DEBUG、INFO、WARN、ERROR、FATAL
