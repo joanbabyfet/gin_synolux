@@ -36,7 +36,7 @@ func (c *CommonController) Ip(ctx *gin.Context) {
 
 // 检测用,可查看是否返回信息及时间戳
 func (c *CommonController) Ping(ctx *gin.Context) {
-	c.SuccessJson(ctx, "success", nil)
+	c.SuccessJson(ctx, "pong", nil)
 }
 
 // 获取图形验证码
