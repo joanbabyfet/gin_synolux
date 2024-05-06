@@ -6,6 +6,7 @@ import (
 	"gin-synolux/jobs"
 	"log"
 
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -24,7 +25,7 @@ func NewQueue() *Queue {
 func (q *Queue) Connect() {
 	var err error
 
-	url := "amqp://guest:guest@localhost:5672/"
+	url := viper.GetString("rabbitmq_host")
 	q.QueueConn, err = amqp.Dial(url)
 	failOnError(err, "Failed to connect to RabbitMQ")
 }

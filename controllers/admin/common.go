@@ -4,6 +4,7 @@ import (
 	"gin-synolux/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 type CommonController struct {
@@ -58,7 +59,8 @@ func (c *CommonController) Captcha(ctx *gin.Context) {
 func (c *CommonController) SendMsg(ctx *gin.Context) {
 	message := ctx.PostForm("message")
 
-	rabbitmq, err := utils.NewRabbitMQ("queue1", "", "", "amqp://guest:guest@localhost:5672/")
+	url := viper.GetString("rabbitmq_host")
+	rabbitmq, err := utils.NewRabbitMQ("queue1", "", "", url)
 	defer rabbitmq.Destroy()
 	if err != nil {
 		c.ErrorJson(ctx, -1, err.Error(), nil)

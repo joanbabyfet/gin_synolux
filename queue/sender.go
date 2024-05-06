@@ -8,6 +8,7 @@ import (
 	"gin-synolux/utils"
 	"log"
 
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -22,7 +23,8 @@ var SendConn *amqp.Connection
 func init() {
 	if SendConn == nil {
 		var err error
-		SendConn, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
+		url := viper.GetString("rabbitmq_host")
+		SendConn, err = amqp.Dial(url)
 
 		fmt.Println("New connect to RabbitMQ")
 
