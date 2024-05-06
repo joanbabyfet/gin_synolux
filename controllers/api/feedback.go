@@ -5,8 +5,8 @@ import (
 	"gin-synolux/models"
 	"gin-synolux/service"
 
-	"github.com/beego/beego/v2/core/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/thedevsaddam/govalidator"
 )
 
 type FeedbackController struct {
@@ -27,11 +27,21 @@ func (c *FeedbackController) Save(ctx *gin.Context) {
 		Email:   email,
 		Content: content,
 	}
-	valid := validation.Validation{}
-	valid.Required(entity.Name, "name")
-	if valid.HasErrors() {
-		for _, err := range valid.Errors {
-			c.ErrorJson(ctx, -1, err.Key+err.Error(), nil)
+	rules := govalidator.MapData{}
+	rules["name"] = []string{"required"}
+	messages := govalidator.MapData{}
+	messages["name"] = []string{"required:name 不能为空"}
+	opts := govalidator.Options{
+		Data:            &entity,
+		Rules:           rules,
+		Messages:        messages,
+		RequiredDefault: false,
+	}
+	valid := govalidator.New(opts)
+	e := valid.ValidateStruct()
+	if len(e) > 0 {
+		for _, err := range e {
+			c.ErrorJson(ctx, -1, err[0], nil)
 			return
 		}
 	}

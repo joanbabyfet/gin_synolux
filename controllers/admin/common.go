@@ -53,3 +53,22 @@ func (c *CommonController) Captcha(ctx *gin.Context) {
 	resp["img"] = b64s
 	c.SuccessJson(ctx, "success", resp)
 }
+
+// 发送消息
+func (c *CommonController) SendMsg(ctx *gin.Context) {
+	message := ctx.PostForm("message")
+
+	rabbitmq, err := utils.NewRabbitMQ("queue1", "", "", "amqp://guest:guest@localhost:5672/")
+	defer rabbitmq.Destroy()
+	if err != nil {
+		c.ErrorJson(ctx, -1, err.Error(), nil)
+		return
+	}
+	//发送消息
+	err = rabbitmq.Publish(message)
+	if err != nil {
+		c.ErrorJson(ctx, -2, err.Error(), nil)
+		return
+	}
+	c.SuccessJson(ctx, "success", nil)
+}

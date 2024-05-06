@@ -41,7 +41,6 @@ func Init() *gin.Engine {
 			v1.GET("/ip", new(controllers.CommonController).Ip)
 			v1.GET("/ping", new(controllers.CommonController).Ping)
 			v1.GET("/captcha", new(controllers.CommonController).Captcha) //获取验证码
-			//v1.GET("/reload_captcha", new(admin.CommonController).Captcha) //获取验证码
 			v1.GET("/test", new(controllers.TestController).Test)
 			v1.POST("/login", new(controllers.UserController).Login) //登录
 			v1.POST("/logout", new(controllers.UserController).Logout)
@@ -50,6 +49,9 @@ func Init() *gin.Engine {
 			v1.POST("/register", new(controllers.UserController).Register)
 			v1.POST("/profile", new(controllers.UserController).Profile)
 			v1.POST("/feedback", new(controllers.FeedbackController).Save)
+			v1.GET("/weather", new(controllers.CommonController).Weather)   //获取天气信息
+			v1.GET("/hardware", new(controllers.CommonController).Hardware) //获取系统信息
+			v1.GET("/gist", new(controllers.CommonController).Gist)         //获取Gist信息
 		}
 	}
 	admin_api := router.Group("/admin_api")
@@ -74,8 +76,8 @@ func Init() *gin.Engine {
 			v1.GET("/ip", new(admin.CommonController).Ip)
 			v1.GET("/ping", new(admin.CommonController).Ping)
 			v1.GET("/captcha", new(admin.CommonController).Captcha) //获取验证码
-			//v1.GET("/reload_captcha", new(admin.CommonController).Captcha) //获取验证码
 			v1.GET("/test", new(admin.TestController).Test)
+			v1.POST("/send_msg", new(admin.CommonController).SendMsg)
 		}
 	}
 	return router

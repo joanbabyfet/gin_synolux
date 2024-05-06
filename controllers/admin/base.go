@@ -22,8 +22,6 @@ type ReturnMsg struct {
 
 // 初始化, 先于Prepare函数
 func init() {
-	//初始化表单验证信息
-	utils.SetVerifyMessage()
 }
 
 // 定义prepare方法, 用户扩展用

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/beego/beego/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"github.com/thedevsaddam/govalidator"
 )
 
 type UserController struct {
@@ -37,16 +37,23 @@ func (c *UserController) Login(ctx *gin.Context) {
 	login.Password = string(pwd)
 
 	//参数验证
-	valid := validation.Validation{}
-	valid.Required(login.Username, "username")
-	valid.Required(login.Password, "password")
-	if enable_captcha {
-		valid.Required(login.Key, "key")
-		valid.Required(login.Code, "code")
+	rules := govalidator.MapData{}
+	rules["username"] = []string{"required"}
+	rules["password"] = []string{"required"}
+	messages := govalidator.MapData{}
+	messages["username"] = []string{"required:username 不能为空"}
+	messages["password"] = []string{"required:password 不能为空"}
+	opts := govalidator.Options{
+		Data:            &login,
+		Rules:           rules,
+		Messages:        messages,
+		RequiredDefault: false,
 	}
-	if valid.HasErrors() {
-		for _, err := range valid.Errors {
-			c.ErrorJson(ctx, -1, err.Key+err.Error(), nil)
+	valid := govalidator.New(opts)
+	e := valid.ValidateStruct()
+	if len(e) > 0 {
+		for _, err := range e {
+			c.ErrorJson(ctx, -1, err[0], nil)
 			return
 		}
 	}
@@ -104,16 +111,29 @@ func (c *UserController) SetPassword(ctx *gin.Context) {
 	dto.Uid = uid
 
 	//参数验证
-	valid := validation.Validation{}
-	valid.Required(dto.Password, "password")
-	valid.Required(dto.NewPassword, "new_password")
-	valid.Required(dto.RePassword, "re_password")
-	if valid.HasErrors() {
-		for _, err := range valid.Errors {
-			c.ErrorJson(ctx, -3, err.Key+err.Error(), nil)
+	rules := govalidator.MapData{}
+	rules["password"] = []string{"required"}
+	rules["new_password"] = []string{"required"}
+	rules["re_password"] = []string{"required"}
+	messages := govalidator.MapData{}
+	messages["password"] = []string{"required:password 不能为空"}
+	messages["new_password"] = []string{"required:new_password 不能为空"}
+	messages["re_password"] = []string{"required:re_password 不能为空"}
+	opts := govalidator.Options{
+		Data:            &dto,
+		Rules:           rules,
+		Messages:        messages,
+		RequiredDefault: false,
+	}
+	valid := govalidator.New(opts)
+	e := valid.ValidateStruct()
+	if len(e) > 0 {
+		for _, err := range e {
+			c.ErrorJson(ctx, -3, err[0], nil)
 			return
 		}
 	}
+
 	//检测输入密码是否一致
 	if dto.RePassword != dto.NewPassword {
 		c.ErrorJson(ctx, -4, "确认密码不一样", nil)
@@ -183,16 +203,31 @@ func (c *UserController) Register(ctx *gin.Context) {
 	entity.Password = string(pwd)
 
 	//参数验证
-	valid := validation.Validation{}
-	valid.Required(entity.Username, "username")
-	valid.Required(entity.Password, "password")
-	valid.Required(entity.Realname, "realname")
-	valid.Required(entity.Email, "email")
-	valid.Required(entity.PhoneCode, "phone_code")
-	valid.Required(entity.Phone, "phone")
-	if valid.HasErrors() {
-		for _, err := range valid.Errors {
-			c.ErrorJson(ctx, -1, err.Key+err.Error(), nil)
+	rules := govalidator.MapData{}
+	rules["username"] = []string{"required"}
+	rules["password"] = []string{"required"}
+	rules["realname"] = []string{"required"}
+	rules["email"] = []string{"required"}
+	rules["phone_code"] = []string{"required"}
+	rules["phone"] = []string{"required"}
+	messages := govalidator.MapData{}
+	messages["username"] = []string{"required:username 不能为空"}
+	messages["password"] = []string{"required:password 不能为空"}
+	messages["realname"] = []string{"required:realname 不能为空"}
+	messages["email"] = []string{"required:email 不能为空"}
+	messages["phone_code"] = []string{"required:phone_code 不能为空"}
+	messages["phone"] = []string{"required:phone 不能为空"}
+	opts := govalidator.Options{
+		Data:            &entity,
+		Rules:           rules,
+		Messages:        messages,
+		RequiredDefault: false,
+	}
+	valid := govalidator.New(opts)
+	e := valid.ValidateStruct()
+	if len(e) > 0 {
+		for _, err := range e {
+			c.ErrorJson(ctx, -1, err[0], nil)
 			return
 		}
 	}
@@ -240,14 +275,27 @@ func (c *UserController) Profile(ctx *gin.Context) {
 	}
 
 	//参数验证
-	valid := validation.Validation{}
-	valid.Required(entity.Realname, "realname")
-	valid.Required(entity.Email, "email")
-	valid.Required(entity.PhoneCode, "phone_code")
-	valid.Required(entity.Phone, "phone")
-	if valid.HasErrors() {
-		for _, err := range valid.Errors {
-			c.ErrorJson(ctx, -3, err.Key+err.Error(), nil)
+	rules := govalidator.MapData{}
+	rules["realname"] = []string{"required"}
+	rules["email"] = []string{"required"}
+	rules["phone_code"] = []string{"required"}
+	rules["phone"] = []string{"required"}
+	messages := govalidator.MapData{}
+	messages["realname"] = []string{"required:realname 不能为空"}
+	messages["email"] = []string{"required:email 不能为空"}
+	messages["phone_code"] = []string{"required:phone_code 不能为空"}
+	messages["phone"] = []string{"required:phone 不能为空"}
+	opts := govalidator.Options{
+		Data:            &entity,
+		Rules:           rules,
+		Messages:        messages,
+		RequiredDefault: false,
+	}
+	valid := govalidator.New(opts)
+	e := valid.ValidateStruct()
+	if len(e) > 0 {
+		for _, err := range e {
+			c.ErrorJson(ctx, -1, err[0], nil)
 			return
 		}
 	}

@@ -2,7 +2,10 @@
 package utils
 
 import (
+	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/tls"
@@ -10,13 +13,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/validation"
 	"github.com/lexkong/log"
 	"github.com/mojocn/base64Captcha"
 	"github.com/sashabaranov/go-openai"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/viper"
 	"github.com/twilio/twilio-go"
 	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
@@ -173,32 +179,6 @@ func ChatGPT(keyword string) (bool, string) {
 	return true, result
 }
 
-// 设置表单验证信息
-func SetVerifyMessage() {
-	validation.SetDefaultMessage(map[string]string{
-		"Required":     "不能为空",
-		"Min":          "最小值 为 %d",
-		"Max":          "最大值 为 %d",
-		"Range":        "范围 为 %d 到 %d",
-		"MinSize":      "最短长度 为 %d",
-		"MaxSize":      "最大长度 为 %d",
-		"Length":       "长度必须 为 %d",
-		"Alpha":        "必须是有效的字母",
-		"Numeric":      "必须是有效的数字",
-		"AlphaNumeric": "必须是有效的字母或数字",
-		"Match":        "必须匹配 %s",
-		"NoMatch":      "必须不匹配 %s",
-		"AlphaDash":    "必须是有效的字母、数字或连接符号(-_)",
-		"Email":        "必须是有效的电子邮件地址",
-		"IP":           "必须是有效的IP地址",
-		"Base64":       "必须是有效的base64字符",
-		"Mobile":       "必须是有效的手机号码",
-		"Tel":          "必须是有效的电话号码",
-		"Phone":        "必须是有效的电话或移动电话号码",
-		"ZipCode":      "必须是有效的邮政编码",
-	})
-}
-
 // 获取图片完整地址
 func DisplayImg(filename string) string {
 	if filename == "" {
@@ -221,4 +201,90 @@ func GetCaptcha() (string, string, string, error) {
 	captcha := base64Captcha.NewCaptcha(driver, Store)
 	id, b64s, answer, err := captcha.Generate()
 	return id, b64s, answer, err
+}
+
+// 加密
+func Encrypt(key, plaintext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// 对明文进行 padding
+	plaintext = pkcs7Padding(plaintext, block.BlockSize())
+
+	// CBC 模式下的加密对象
+	iv := []byte("1234567890123456")
+	mode := cipher.NewCBCEncrypter(block, iv)
+	ciphertext := make([]byte, len(plaintext))
+	mode.CryptBlocks(ciphertext, plaintext)
+	return ciphertext, nil
+}
+
+// 解密
+func Decrypt(key, ciphertext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// CBC 模式下的解密对象
+	iv := []byte("1234567890123456")
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// 去除 padding
+	plaintext = pkcs7UnPadding(plaintext)
+	return plaintext, nil
+}
+
+// 对明文进行 padding
+func pkcs7Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+// 去除 padding
+func pkcs7UnPadding(plaintext []byte) []byte {
+	length := len(plaintext)
+	unpadding := int(plaintext[length-1])
+	return plaintext[:(length - unpadding)]
+}
+
+// 获取cpu使用率
+func GetCpuPercent() (float64, error) {
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		return 0, err
+	}
+	return percent[0], nil
+}
+
+// 获取内存使用率
+func GetRamPercent() (float64, error) {
+	ram_info, err := mem.VirtualMemory()
+	if err != nil {
+		return 0, err
+	}
+	return ram_info.UsedPercent, nil
+}
+
+// 获取cpu温度
+func GetCpuTemp() (int, error) {
+	cmd := exec.Command("cat", "/sys/class/thermal/thermal_zone0/temp")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return 0, err
+	}
+	tempStr := strings.Replace(out.String(), "\n", "", -1)
+	temp, err := strconv.Atoi(tempStr)
+	if err != nil {
+		return 0, err
+	}
+	temp = temp / 1000
+	return temp, nil
 }

@@ -32,6 +32,9 @@ func main() {
 	//初始化定时任务
 	//utils.CrontabInit()
 
+	//初始化工作队列
+	utils.InitRedisQueue()
+
 	//路由
 	router := routers.Init()
 	s := &http.Server{
