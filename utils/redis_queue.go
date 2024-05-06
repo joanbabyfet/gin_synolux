@@ -9,15 +9,15 @@ import (
 
 // 工作任务的结构体
 type Job struct {
-	Queue string                 `json:"queue"`
-	Task  string                 `json:"task"` //任务名, 唯一标识
-	Args  map[string]interface{} `json:"args"` //参数
+	Queue  string                 `json:"queue"`
+	Action string                 `json:"task"` //唯一标识
+	Args   map[string]interface{} `json:"args"` //参数
 }
 
 // 初始化工作队列
 func InitRedisQueue() {
-	// 初始化工作队列
-	cache_key := "work_queue"
+	// 初始化工作队列, 先规划好队列名称
+	cache_key := "queue1"
 	_, err := Redis.Del(cache_key).Result()
 	if err != nil {
 		panic(err)
@@ -34,7 +34,7 @@ func InitRedisQueue() {
 func worker(id int) {
 	for {
 		// 从工作队列中获取一个工作
-		cache_key := "work_queue"                       //队列名
+		cache_key := "queue1"                           //队列名
 		item, err := Redis.BLPop(0, cache_key).Result() //移出并获取列表的第一个元素
 		if err != nil {
 			log.Error("worker "+strconv.Itoa(id)+" failed", err)
@@ -51,22 +51,22 @@ func worker(id int) {
 		}
 
 		//发送邮件
-		if job.Task == "send_mail" {
+		if job.Action == "mail" {
 			to := job.Args["to"].(string)
 			subject := job.Args["subject"].(string)
 			body := job.Args["body"].(string)
 			ok := SendMail(to, subject, body)
 			if !ok {
-				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Task+" failed args: "+jobJSON, err)
+				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
 				continue
 			}
 		}
-		if job.Task == "send_sms" {
+		if job.Action == "sms" {
 			to := job.Args["to"].(string)
 			body := job.Args["body"].(string)
 			ok := SendSMS(to, body)
 			if !ok {
-				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Task+" failed args: "+jobJSON, err)
+				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
 				continue
 			}
 		}

@@ -2,6 +2,8 @@ package admin
 
 import (
 	"encoding/json"
+	"gin-synolux/jobs"
+	"gin-synolux/queue"
 	"gin-synolux/utils"
 
 	"github.com/gin-gonic/gin"
@@ -38,35 +40,32 @@ func (c *TestController) Test(ctx *gin.Context) {
 	//fmt.Println(utils.UniqueId())
 
 	// 生产者, 将工作添加到工作队列
-	cache_key := "work_queue" //队列名
 	data := map[string]interface{}{
-		"to":   "+886958035350",
+		"to":   "+886912345678",
 		"body": "测试",
 	}
 	for i := 1; i <= 2; i++ {
-		job := utils.Job{Queue: "default", Task: "send_sms", Args: data}
+		job := utils.Job{Queue: "queue1", Action: "sms", Args: data}
 		jobJSON, _ := json.Marshal(job)
-		_, err := utils.Redis.RPush(cache_key, jobJSON).Result() //将一个或多个值插入到列表的尾部(最右边)
+		_, err := utils.Redis.RPush(job.Queue, jobJSON).Result() //将一个或多个值插入到列表的尾部(最右边)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	data = map[string]interface{}{
-		"to":      "crwu0206@gmail.com",
+		"to":      "example@example.com",
 		"subject": "测试",
 		"body":    "测试测试测试",
 	}
 	for i := 1; i <= 10; i++ {
-		job := utils.Job{Queue: "default", Task: "send_mail", Args: data}
+		job := utils.Job{Queue: "queue1", Action: "mail", Args: data}
 		jobJSON, _ := json.Marshal(job)
-		_, err := utils.Redis.RPush(cache_key, jobJSON).Result() //将一个或多个值插入到列表的尾部(最右边)
+		_, err := utils.Redis.RPush(job.Queue, jobJSON).Result() //将一个或多个值插入到列表的尾部(最右边)
 		if err != nil {
 			panic(err)
 		}
 	}
-	// 等待所有工作完成
-	//time.Sleep(5 * time.Second)
 
 	//base64加密
 	// str := "123456"
@@ -91,21 +90,15 @@ func (c *TestController) Test(ctx *gin.Context) {
 	// plaintext, _ := utils.Decrypt(key, ciphertext)
 	// fmt.Println("解密结果：", string(plaintext))
 
-	//创建一个新的RabbitMQ实例
-	//forever := make(chan bool)
-	// rabbitmq, err := utils.NewRabbitMQ("queue1", "", "", "amqp://guest:guest@localhost:5672/")
-	// defer rabbitmq.Destroy()
-	// if err != nil {
-	// 	log.Println(err)
-	// }
+	c.SuccessJson(ctx, "success", nil)
+}
 
-	// go func() {
-	// 	for i := 0; i < 100; i++ {
-	// 		rabbitmq.Publish("消息:" + strconv.Itoa(i))
-	// 	}
-	// }()
-
-	// <-forever
+// 测试生产者
+func (c *TestController) Queue(ctx *gin.Context) {
+	queue.NewSender("queue1", "mail", jobs.SubscribeMail{
+		To: "example@example.com", Subject: "测试", Body: "测试测试测试"}).Send()
+	queue.NewSender("queue2", "sms", jobs.SubscribeSMS{
+		To: "+886912345678", Body: "短信测试"}).Send()
 
 	c.SuccessJson(ctx, "success", nil)
 }

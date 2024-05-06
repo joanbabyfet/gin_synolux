@@ -2,30 +2,38 @@
 package main
 
 import (
+	"gin-synolux/jobs"
+	"gin-synolux/queue"
 	"gin-synolux/utils"
-	"log"
+
+	"github.com/spf13/pflag"
 )
 
-func main() {
-	forever := make(chan bool) //注册在主进程，不需要阻塞
+var cfg = pflag.StringP("config", "", "", "apiserver config file path.")
 
-	//创建一个新的RabbitMQ实例
-	rabbitmq, err := utils.NewRabbitMQ("queue1", "", "", "amqp://guest:guest@localhost:5672/")
-	defer rabbitmq.Destroy()
-	if err != nil {
-		log.Println(err)
+func main() {
+	//解析定义的标志
+	pflag.Parse()
+
+	//初始化配置
+	if err := utils.InitConfig(*cfg); err != nil {
+		panic(err)
 	}
 
-	// 执行消费
-	go func() {
-		msgs, err3 := rabbitmq.Consume()
-		if err3 != nil {
-			log.Println(err3)
-		}
-		for d := range msgs {
-			log.Printf("接受到了：%s", string(d.Body))
-		}
-	}()
+	subscriberMail := new(jobs.SubscribeMail) //实例化
+	subscriberSMS := new(jobs.SubscribeSMS)
+	forever := make(chan bool)
 
+	q := queue.NewQueue()
+
+	//队列执行的任务需要注册方可执行
+	q.PushJob("mail", jobs.HandlerFunc(subscriberMail.ActionMail))
+	q.PushJob("sms", jobs.HandlerFunc(subscriberSMS.ActionSMS))
+
+	//提前规划好队列，可按延时时间来划分。可多个任务由一个队列来执行，也可以一个任务一个队列，一个队列可启动多个消费者
+	go q.NewShareQueue("queue1")
+	go q.NewShareQueue("queue2")
+
+	defer q.Close()
 	<-forever
 }

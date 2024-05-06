@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -287,4 +288,14 @@ func GetCpuTemp() (int, error) {
 	}
 	temp = temp / 1000
 	return temp, nil
+}
+
+func ByteEncoder(s interface{}) []byte {
+	var enc_result bytes.Buffer
+	enc := gob.NewEncoder(&enc_result)
+	if err := enc.Encode(s); err != nil {
+		log.Fatal("encode error:", err)
+	}
+
+	return enc_result.Bytes()
 }

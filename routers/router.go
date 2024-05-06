@@ -77,6 +77,7 @@ func Init() *gin.Engine {
 			v1.GET("/ping", new(admin.CommonController).Ping)
 			v1.GET("/captcha", new(admin.CommonController).Captcha) //获取验证码
 			v1.GET("/test", new(admin.TestController).Test)
+			v1.GET("/queue", new(admin.TestController).Queue) //测试生产者
 			v1.POST("/send_msg", new(admin.CommonController).SendMsg)
 		}
 	}
