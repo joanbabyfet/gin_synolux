@@ -14,15 +14,15 @@ chat_gpt_api:
 rabbitmq_host: "amqp://guest:guest@localhost:5672/"
 
 # twilio
-twilio_sid: ACee27ea17c848ab26ae7674eed7b4063a
-twilio_token: c4d5128e6f4e03c12d5698a45eafa8c3
+twilio_sid: 
+twilio_token: 
 twilio_from: "+13187311787"
 
 # smtp
 mail_host: smtp.mailgun.org
 mail_port: 587
-mail_username: postmaster@sandbox1be15f57906341ad92f85726a17f63b1.mailgun.org
-mail_password: 55a88ea9fb8efa2976ae0377870ba45d
+mail_username: 
+mail_password: 
 mail_from_address: postmaster@sandbox1be15f57906341ad92f85726a17f63b1.mailgun.org
 mail_from_name: synolux
 
@@ -30,8 +30,8 @@ db:
   driverName: mysql
   addr: 127.0.0.1:3306
   name: synolux
-  username: dbuser
-  password: admin888
+  username: dbuer
+  password: 
   charset: utf8
   prefix: kk_
 redis:
