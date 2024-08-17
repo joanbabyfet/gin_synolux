@@ -6,31 +6,31 @@ upload_dir: uploads
 upload_max_size: 5
 file_url: https://tststatic.synolux.local
 # 是否启用验证码
-enable_captcha: false
+enable_captcha: true
 
 chat_gpt_api: 
 
 # rabbitmq
-rabbitmq_host: "amqp://guest:guest@localhost:5672/"
+rabbitmq_host: 
 
 # twilio
 twilio_sid: 
 twilio_token: 
-twilio_from: "+13187311787"
+twilio_from: 
 
 # smtp
 mail_host: smtp.mailgun.org
 mail_port: 587
 mail_username: 
 mail_password: 
-mail_from_address: postmaster@sandbox1be15f57906341ad92f85726a17f63b1.mailgun.org
+mail_from_address: 
 mail_from_name: synolux
 
 db:
   driverName: mysql
   addr: 127.0.0.1:3306
   name: synolux
-  username: dbuer
+  username: 
   password: 
   charset: utf8
   prefix: kk_
