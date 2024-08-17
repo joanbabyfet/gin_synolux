@@ -39,6 +39,7 @@ func (s *UploadService) Upload(ctx *gin.Context, f *multipart.FileHeader, dir st
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
+		".gif":  true,
 	}
 	if _, ok := allow_ext_map[ext]; !ok {
 		log.Error("文件格式不正确", nil)

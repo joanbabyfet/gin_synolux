@@ -25,6 +25,7 @@ func (s *UserService) Login(login dto.UserLogin) (int, *dto.UserLoginResp, error
 		log.Error("用户名或密码无效", err)
 		return -4, nil, errors.New("用户名或密码无效")
 	}
+	//更新用户信息
 	u.LoginIp = login.LoginIp
 	u.LoginTime = utils.Timestamp()
 	if err := models.DB.Self.Save(&u).Error; err != nil {
@@ -122,7 +123,6 @@ func (s *UserService) Save(entity models.User) (int, error) {
 		entity.Id = utils.UniqueId()
 		password, _ := utils.PasswordHash(entity.Password)
 		entity.Password = password
-		entity.Language = "cn"
 		entity.Language = "cn" //默认中文
 		entity.Status = 1
 		entity.CreateUser = "1"               //添加人

@@ -52,6 +52,7 @@ func Init() *gin.Engine {
 			v1.GET("/weather", new(controllers.CommonController).Weather)   //获取天气信息
 			v1.GET("/hardware", new(controllers.CommonController).Hardware) //获取系统信息
 			v1.GET("/gist", new(controllers.CommonController).Gist)         //获取Gist信息
+			v1.GET("/movie", new(controllers.MovieController).Index)        //视频列表
 		}
 	}
 	admin_api := router.Group("/admin_api")

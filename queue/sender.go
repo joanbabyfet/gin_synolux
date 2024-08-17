@@ -4,11 +4,9 @@ package queue
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"gin-synolux/utils"
 	"log"
 
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -20,16 +18,17 @@ type Sender struct {
 
 var SendConn *amqp.Connection
 
+// 启用RabbitMQ
 func init() {
-	if SendConn == nil {
-		var err error
-		url := viper.GetString("rabbitmq_host")
-		SendConn, err = amqp.Dial(url)
+	// if SendConn == nil {
+	// 	var err error
+	// 	url := viper.GetString("rabbitmq_host")
+	// 	SendConn, err = amqp.Dial(url)
 
-		fmt.Println("New connect to RabbitMQ")
+	// 	fmt.Println("New connect to RabbitMQ")
 
-		failOnError(err, "Failed to connect to RabbitMQ")
-	}
+	// 	failOnError(err, "Failed to connect to RabbitMQ")
+	// }
 }
 
 func NewSender(queue_name string, job string, send_msg interface{}) *Sender {

@@ -33,7 +33,7 @@ func main() {
 	//utils.CrontabInit()
 
 	//初始化工作队列
-	utils.InitRedisQueue()
+	//utils.InitRedisQueue()
 
 	//路由
 	router := routers.Init()

@@ -37,6 +37,7 @@ func (c *ArticleController) HomeArticle(ctx *gin.Context) {
 // 获取列表
 func (c *ArticleController) Index(ctx *gin.Context) {
 	catid, _ := strconv.Atoi(ctx.Query("catid"))
+	title := ctx.Query("title")
 	page, _ := strconv.Atoi(ctx.Query("page"))
 	page_size, _ := strconv.Atoi(ctx.Query("page_size"))
 	if page < 1 {
@@ -48,6 +49,7 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 
 	//获取文䓬列表
 	query := dto.ArticleQuery{}
+	query.Title = title
 	query.Catid = catid
 	query.Page = page
 	query.PageSize = page_size
