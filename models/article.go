@@ -4,6 +4,7 @@ import (
 	"gin-synolux/dto"
 	"reflect"
 
+	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 )
 
@@ -31,56 +32,39 @@ func (m *Article) TableName() string {
 	return viper.GetString("db.prefix") + "article"
 }
 
-// 获取全部列表
-func (m *Article) All(query dto.ArticleQuery) (list []*Article) {
+// 获取分页列表
+func (m *Article) List(query dto.ArticleQuery) ([]*Article, int64) {
 	qs := DB.Self.Model(new(Article))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	if query.Limit != 0 {
+	qs = qs.Debug().Where("delete_time = ?", 0) //未删除
+	if !reflect.ValueOf(&query.Status).IsNil() {
+		qs = qs.Where("status = ?", query.Status)
+	}
+	if query.Catid != 0 {
+		qs = qs.Where("catid = ?", query.Catid)
+	}
+	if len(query.Catids) > 0 {
+		qs = qs.Where("catid IN ?", query.Catids)
+	}
+	if query.Title != "" {
+		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
+	}
+	
+	var list []*Article
+	var count int64
+
+	if query.Count { //是否返回总条数
+		qs.Count(&count)
+	}
+	qs = qs.Order("create_time DESC")
+
+	if query.Page > 0 && query.PageSize > 0 {
+		offset := (query.Page - 1) * query.PageSize
+		qs = qs.Limit(query.PageSize).Offset(offset)
+	} else if query.Limit > 0 {
 		qs = qs.Limit(query.Limit)
 	}
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if query.Catid != 0 {
-		qs = qs.Where("catid = ?", query.Catid)
-	}
-	if len(query.Catids) > 0 {
-		qs = qs.Where("catid IN ?", query.Catids)
-	}
-	if len(query.Title) > 1 {
-		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
-	}
-	qs.Order("create_time desc").Find(&list)
-	return list
-}
+	qs.Find(&list)
 
-// 获取分页列表
-func (m *Article) PageList(query dto.ArticleQuery) ([]*Article, int64) {
-	qs := DB.Self.Model(new(Article))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if query.Catid != 0 {
-		qs = qs.Where("catid = ?", query.Catid)
-	}
-	if len(query.Catids) > 0 {
-		qs = qs.Where("catid IN ?", query.Catids)
-	}
-	if len(query.Title) > 1 {
-		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
-	}
-	//总条数
-	var count int64
-	qs.Count(&count)
-	var list []*Article
-	if count > 0 {
-		offset := (query.Page - 1) * query.PageSize
-		qs.Order("create_time desc").Limit(query.PageSize).Offset(offset).Find(&list)
-	}
-	if reflect.ValueOf(list).IsNil() {
-		list = make([]*Article, 0) //赋值为空切片[]
-	}
 	return list, count
 }
 
@@ -94,18 +78,42 @@ func (m *Article) GetById(id int) (v *Article, err error) {
 	return v, nil
 }
 
-// 单条添加
-func (m *Article) Add() error {
-	return DB.Self.Create(&m).Error
+// 获取单条(支持事务)
+func (m *Article) GetByIdTx(tx *gorm.DB, id int) (v *Article, err error) {
+	v = &Article{}
+	d := tx.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
+	if d.Error != nil {
+		return nil, d.Error
+	}
+	return v, nil
 }
 
-// 更新
-func (m *Article) UpdateById() error {
-	return DB.Self.Save(m).Error
+// 单条添加(支持事务)
+func (m *Article) Add(tx ...*gorm.DB) error {
+	db := DB.Self
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0] // 使用事务对象
+    }
+    return db.Create(m).Error
+}
+
+// 更新(支持事务)
+func (m *Article) UpdateById(tx ...*gorm.DB) error {
+	db := DB.Self
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0] // 使用事务对象
+    }
+    return db.Save(m).Error
 }
 
 // 删除
-func (m *Article) DeleteById(id int) error {
+func (m *Article) DeleteById(id int, tx ...*gorm.DB) error {
 	m.Id = id
-	return DB.Self.Delete(m).Error
+
+    db := DB.Self
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0] // 使用事务对象
+    }
+
+    return db.Delete(m).Error
 }

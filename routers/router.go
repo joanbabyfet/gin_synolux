@@ -28,7 +28,6 @@ func Init() *gin.Engine {
 	{
 		v1 := api.Group("/v1")
 		{
-			v1.GET("/home_article", new(controllers.ArticleController).HomeArticle) //首页文章
 			v1.GET("/article", new(controllers.ArticleController).Index)
 			v1.GET("/article/detail", new(controllers.ArticleController).Detail)
 			v1.POST("/article/save", new(controllers.ArticleController).Save)

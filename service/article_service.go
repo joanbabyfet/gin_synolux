@@ -1,51 +1,101 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"gin-synolux/dto"
 	"gin-synolux/models"
 	"gin-synolux/utils"
 	"strconv"
+	"time"
 
 	"github.com/lexkong/log"
+	"github.com/thedevsaddam/govalidator"
 )
 
 type ArticleService struct {
 }
 
-// 获取全部列表
-func (s *ArticleService) All(query dto.ArticleQuery) []*models.Article {
-	entity := new(models.Article) //new实例化
-	return entity.All(query)
-}
-
 // 获取分页列表
-func (s *ArticleService) PageList(query dto.ArticleQuery) ([]*models.Article, int64) {
+func (s *ArticleService) List(query dto.ArticleQuery) ([]*models.Article, int64) {
 	entity := new(models.Article) //new实例化
-	return entity.PageList(query)
+	return entity.List(query)
 }
 
 // 获取详情
 func (s *ArticleService) GetById(id int) (*models.Article, error) {
-	entity := new(models.Article)
+	// 参数验证
+	entity := models.Article{Id: id}
+    rules := govalidator.MapData{
+        "id": []string{"required"},
+    }
+    messages := govalidator.MapData{
+        "id": []string{"required:id 不能为空"},
+    }
+    if err := utils.ValidateStruct(&entity, rules, messages); err != nil {
+        return nil, err
+    }
+
+	//先查缓存
+	cache_key := fmt.Sprintf("article:detail:%d", id)
+	val, err := utils.Redis.Get(cache_key).Result()
+	if err == nil {
+		var info models.Article
+		if jsonErr := json.Unmarshal([]byte(val), &info); jsonErr == nil {
+			return &info, nil
+		}
+	}
+
+	//缓存未命中，查库
 	info, err := entity.GetById(id)
 	if err != nil {
 		log.Error("文章不存在 "+strconv.Itoa(id), err)
 		return nil, errors.New("文章不存在")
 	}
+
+	bytes, err := json.Marshal(info)
+	if err == nil {
+		_ = utils.Redis.Set(cache_key, bytes, time.Hour).Err()
+	}
+
 	return info, nil
 }
 
 // 保存
-func (s *ArticleService) Save(data models.Article) (int, error) {
+func (s *ArticleService) Save(data models.Article, isAdmin bool) (int, error) {
+	rules := govalidator.MapData{
+        "title": []string{"required"},
+    }
+    messages := govalidator.MapData{
+        "title": []string{"required:title 不能为空"},
+    }
+    // 更新操作必须验证 ID
+    if data.Id > 0 {
+        rules["id"] = []string{"required"}
+        messages["id"] = []string{"required:id 不能为空"}
+    }
+
+    if err := utils.ValidateStruct(&data, rules, messages); err != nil {
+        return -1, err
+    }
+
 	stat := 1
 	tx := models.DB.Self.Begin() //开启事务
+	defer func() {
+		//防止紧急停止
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
 
 	if data.Id > 0 {
 		//检测数据是否存在
 		entity := new(models.Article)
-		info, err := entity.GetById(data.Id)
+		info, err := entity.GetByIdTx(tx, data.Id)
 		if err != nil {
+			tx.Rollback() //手动回滚事务
 			log.Error("文章不存在 "+strconv.Itoa(data.Id), err)
 			return -2, errors.New("文章不存在")
 		}
@@ -57,8 +107,7 @@ func (s *ArticleService) Save(data models.Article) (int, error) {
 		info.Status = data.Status
 		info.UpdateUser = "1"               //修改人
 		info.UpdateTime = utils.Timestamp() //修改时间
-		err = info.UpdateById()
-		if err != nil {
+		if err := info.UpdateById(tx); err != nil {
 			tx.Rollback() //手动回滚事务
 			log.Error("文章更新 "+strconv.Itoa(data.Id), err)
 			return -3, errors.New("文章更新失败")
@@ -67,81 +116,147 @@ func (s *ArticleService) Save(data models.Article) (int, error) {
 		data.Status = 1
 		data.CreateUser = "1"               //添加人
 		data.CreateTime = utils.Timestamp() //添加时间
-		err := data.Add()
+		err := data.Add(tx)
 		if err != nil {
 			tx.Rollback() //手动回滚事务
 			log.Error("文章添加", err)
 			return -4, errors.New("文章添加失败")
 		}
 	}
-	tx.Commit() //手动提交事务
+	
+	//手动提交事务
+	if err := tx.Commit().Error; err != nil {
+        return -5, err
+    }
+	
+	if data.Id > 0 {
+		cache_key := fmt.Sprintf("article:detail:%d", data.Id)
+		_ = utils.Redis.Del(cache_key).Err()
+	}
+
+	// 后台操作日志
+	if isAdmin {
+		if data.Id > 0 {
+			log.Info(fmt.Sprintf("更新文章 id=%d", data.Id))
+		} else {
+			log.Info("添加文章")
+		}
+	}
+
 	return stat, nil
 }
 
 // 软删除
-func (s *ArticleService) DeleteById(id int) (int, error) {
+func (s *ArticleService) DeleteById(id int, isAdmin bool) (int, error) {
+	// 参数验证
+	entity := models.Article{Id: id}
+    rules := govalidator.MapData{
+        "id": []string{"required"},
+    }
+    messages := govalidator.MapData{
+        "id": []string{"required:id 不能为空"},
+    }
+    if err := utils.ValidateStruct(&entity, rules, messages); err != nil {
+        return -1, err
+    }
+
 	stat := 1
+	tx := models.DB.Self.Begin() //开启事务
+	defer func() {
+		//防止紧急停止
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
 
 	//检测数据是否存在
-	entity := new(models.Article)
-	info, err := entity.GetById(id)
+	info, err := entity.GetByIdTx(tx, id)
 	if err != nil {
+		tx.Rollback() //手动回滚事务
 		log.Error("文章不存在 "+strconv.Itoa(id), err)
 		return -2, errors.New("文章不存在")
 	}
 
 	info.DeleteUser = "1"               //修改人
 	info.DeleteTime = utils.Timestamp() //修改时间
-	err = info.UpdateById()
+	err = info.UpdateById(tx)
 	if err != nil {
+		tx.Rollback() //手动回滚事务
 		log.Error("文章删除 "+strconv.Itoa(id), err)
 		return -3, errors.New("文章删除失败")
 	}
+
+	//手动提交事务
+	if err := tx.Commit().Error; err != nil {
+        return -4, err
+    }
+
+	cache_key := fmt.Sprintf("article:detail:%d", id)
+	_ = utils.Redis.Del(cache_key).Err()
+
+	// 后台操作日志
+	if isAdmin {
+		log.Info(fmt.Sprintf("删除文章 id=%d", id))
+	}
+
 	return stat, nil
 }
 
-// 启用
-func (s *ArticleService) EnableById(id int) (int, error) {
+//变更状态
+func (s *ArticleService) ChangeStatus(id int, status int, isAdmin bool) (int, error) {
+	// 参数验证
+	entity := models.Article{Id: id}
+    rules := govalidator.MapData{
+        "id": []string{"required"},
+    }
+    messages := govalidator.MapData{
+        "id": []string{"required:id 不能为空"},
+    }
+    if err := utils.ValidateStruct(&entity, rules, messages); err != nil {
+        return -1, err
+    }
+
 	stat := 1
+	tx := models.DB.Self.Begin() //开启事务
+	defer func() {
+		//防止紧急停止
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
 
 	//检测数据是否存在
-	entity := new(models.Article)
-	info, err := entity.GetById(id)
+	info, err := entity.GetByIdTx(tx, id)
 	if err != nil {
+		tx.Rollback() //手动回滚事务
 		log.Error("文章不存在 "+strconv.Itoa(id), err)
 		return -2, errors.New("文章不存在")
 	}
 
-	info.Status = 1
+	info.Status = int8(status)
 	info.UpdateUser = "1"               //修改人
 	info.UpdateTime = utils.Timestamp() //修改时间
-	err = info.UpdateById()
+	err = info.UpdateById(tx)
 	if err != nil {
-		log.Error("文章启用 "+strconv.Itoa(id), err)
-		return -3, errors.New("文章启用失败")
-	}
-	return stat, nil
-}
-
-// 禁用
-func (s *ArticleService) DisableById(id int) (int, error) {
-	stat := 1
-
-	//检测数据是否存在
-	entity := new(models.Article)
-	info, err := entity.GetById(id)
-	if err != nil {
-		log.Error("文章不存在 "+strconv.Itoa(id), err)
-		return -2, errors.New("文章不存在")
-	}
-
-	info.Status = 0
-	info.UpdateUser = "1"               //修改人
-	info.UpdateTime = utils.Timestamp() //修改时间
-	err = info.UpdateById()
-	if err != nil {
+		tx.Rollback() //手动回滚事务
 		log.Error("文章禁用 "+strconv.Itoa(id), err)
 		return -3, errors.New("文章禁用失败")
 	}
+
+	//手动提交事务
+	if err := tx.Commit().Error; err != nil {
+        return -4, err
+    }
+
+	cache_key := fmt.Sprintf("article:detail:%d", id)
+	_ = utils.Redis.Del(cache_key).Err()
+
+	// 后台操作日志
+	if isAdmin {
+		log.Info(fmt.Sprintf("修改文章状态 id=%d status=%d", id, status))
+	}
+
 	return stat, nil
 }
