@@ -61,10 +61,10 @@ func (c *ArticleController) Detail(ctx *gin.Context) {
 	service_article := new(service.ArticleService)
 	info, err := service_article.GetById(id)
 	if err != nil {
-		c.ErrorJson(ctx, -2, err.Error(), nil)
+		se := err.(*service.ServiceError);
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
 		return
 	}
-
 	c.SuccessJson(ctx, "success", info)
 }
 
@@ -89,9 +89,10 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 		Status:  int8(status),
 	}
 	service_article := new(service.ArticleService)
-	stat, err := service_article.Save(entity, true)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := service_article.Save(entity, true)
+	if err != nil {
+		se := err.(*service.ServiceError);
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -102,9 +103,10 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
 	service_article := new(service.ArticleService)
-	stat, err := service_article.DeleteById(id, true)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := service_article.DeleteById(id, true)
+	if err != nil {
+		se := err.(*service.ServiceError);
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -115,9 +117,10 @@ func (c *ArticleController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
 	service_article := new(service.ArticleService)
-	stat, err := service_article.ChangeStatus(id, 1, true)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := service_article.ChangeStatus(id, 1, true)
+	if err != nil {
+		se := err.(*service.ServiceError);
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -128,9 +131,10 @@ func (c *ArticleController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
 	service_article := new(service.ArticleService)
-	stat, err := service_article.ChangeStatus(id, 0, true)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := service_article.ChangeStatus(id, 0, true)
+	if err != nil {
+		se := err.(*service.ServiceError);
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
