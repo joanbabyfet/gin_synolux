@@ -3,6 +3,7 @@ package admin
 
 import (
 	"gin-synolux/consts"
+	"gin-synolux/service"
 	"gin-synolux/utils"
 	"net/http"
 
@@ -72,4 +73,15 @@ func (c *AdminBaseController) ErrorJson(ctx *gin.Context, code int, msg string, 
 // 获取客户端ip
 func (c *AdminBaseController) getClientIp(ctx *gin.Context) string {
 	return ctx.ClientIP()
+}
+
+//错误处理
+func (c *AdminBaseController) handleError(ctx *gin.Context, err error) {
+	if se, ok := err.(*service.ServiceError); ok {
+		// 类型正确
+		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+	} else {
+		// 兜底
+		c.ErrorJson(ctx, 500, "internal server error", nil)
+	}
 }

@@ -12,16 +12,10 @@ import (
 type MovieService struct {
 }
 
-// 获取全部列表
-func (s *MovieService) All(query dto.MovieQuery) []*models.Movie {
-	entity := new(models.Movie) //new实例化
-	return entity.All(query)
-}
-
 // 获取分页列表
-func (s *MovieService) PageList(query dto.MovieQuery) ([]*models.Movie, int64) {
+func (s *MovieService) List(query dto.MovieQuery) ([]*models.Movie, int64) {
 	entity := new(models.Movie) //new实例化
-	return entity.PageList(query)
+	return entity.List(query)
 }
 
 // 获取详情

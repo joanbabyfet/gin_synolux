@@ -69,8 +69,11 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
     messages := govalidator.MapData{
         "title": []string{"required:title 不能为空"},
     }
+
+	isUpdate := data.Id > 0
+
     // 更新操作必须验证 ID
-    if data.Id > 0 {
+    if isUpdate {
         rules["id"] = []string{"required"}
         messages["id"] = []string{"required:id 不能为空"}
     }
@@ -79,34 +82,42 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
         return NewServiceError(-1, err.Error())
     }
 
-	tx := models.DB.Self.Begin() //开启事务
+	//开启事务
+	tx := models.DB.Self.Begin() 
+	var err error
 	defer func() {
 		//防止紧急停止
 		if r := recover(); r != nil {
 			tx.Rollback()
 			panic(r)
 		}
+		//不用再手动 rollback
+		if err != nil {
+			tx.Rollback()
+		}
 	}()
 
-	if data.Id > 0 {
+	if isUpdate {
 		//检测数据是否存在
-		entity := new(models.Article)
-		info, err := entity.GetByIdTx(tx, data.Id)
-		if err != nil {
-			tx.Rollback() //手动回滚事务
+		var info models.Article
+		if err = tx.First(&info, "id = ?", data.Id).Error; err != nil {
 			log.Error("文章不存在 "+strconv.Itoa(data.Id), err)
 			return NewServiceError(-2, "文章不存在")
 		}
-		info.Catid = data.Catid
-		info.Title = data.Title
-		info.Info = data.Info
-		info.Content = data.Content
-		info.Author = data.Author
-		info.Status = data.Status
-		info.UpdateUser = "1"               //修改人
-		info.UpdateTime = utils.Timestamp() //修改时间
-		if err := info.UpdateById(tx); err != nil {
-			tx.Rollback() //手动回滚事务
+		
+		// 用 Updates（结构体方式）
+		updateData := map[string]interface{}{
+			"catid":       data.Catid,
+			"title":       data.Title,
+			"info":        data.Info,
+			"content":     data.Content,
+			"author":      data.Author,
+			"status":      data.Status,
+			"update_user": "1",
+			"update_time": utils.Timestamp(),
+		}
+
+		if err = tx.Model(&info).Updates(updateData).Error; err != nil {
 			log.Error("文章更新 "+strconv.Itoa(data.Id), err)
 			return NewServiceError(-3, "文章更新失败")
 		}
@@ -114,27 +125,28 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 		data.Status = 1
 		data.CreateUser = "1"               //添加人
 		data.CreateTime = utils.Timestamp() //添加时间
-		err := data.Add(tx)
-		if err != nil {
-			tx.Rollback() //手动回滚事务
-			log.Error("文章添加", err)
+
+		if err = tx.Create(&data).Error; err != nil {
+			log.Error("文章添加失败", err)
 			return NewServiceError(-4, "文章添加失败")
 		}
 	}
 	
 	//手动提交事务
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
+		log.Error("事务提交失败", err)
 		return NewServiceError(-5, err.Error())
     }
 	
-	if data.Id > 0 {
+	//清缓存
+	if isUpdate {
 		cache_key := fmt.Sprintf("article:detail:%d", data.Id)
 		_ = utils.Redis.Del(cache_key).Err()
 	}
 
 	// 后台操作日志
 	if isAdmin {
-		if data.Id > 0 {
+		if isUpdate {
 			log.Info(fmt.Sprintf("更新文章 id=%d", data.Id))
 		} else {
 			log.Info("添加文章")

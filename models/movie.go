@@ -42,26 +42,32 @@ func (m *Movie) All(query dto.MovieQuery) (list []*Movie) {
 }
 
 // 获取分页列表
-func (m *Movie) PageList(query dto.MovieQuery) ([]*Movie, int64) {
+func (m *Movie) List(query dto.MovieQuery) ([]*Movie, int64) {
 	qs := DB.Self.Model(new(Movie))
-	qs = qs.Where("delete_time = ?", 0) //未删除
+	qs = qs.Debug().Where("delete_time = ?", 0) //未删除
 	if !reflect.ValueOf(&query.Status).IsNil() {
 		qs = qs.Where("status = ?", query.Status)
 	}
-	if len(query.Title) > 1 {
+	if query.Title != "" {
 		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
 	}
-	//总条数
-	var count int64
-	qs.Count(&count)
+	
 	var list []*Movie
-	if count > 0 {
+	var count int64
+
+	if query.Count { //是否返回总条数
+		qs.Count(&count)
+	}
+	qs = qs.Order("create_time DESC")
+
+	if query.Page > 0 && query.PageSize > 0 {
 		offset := (query.Page - 1) * query.PageSize
-		qs.Order("create_time desc").Limit(query.PageSize).Offset(offset).Find(&list)
+		qs = qs.Limit(query.PageSize).Offset(offset)
+	} else if query.Limit > 0 {
+		qs = qs.Limit(query.Limit)
 	}
-	if reflect.ValueOf(list).IsNil() {
-		list = make([]*Movie, 0) //赋值为空切片[]
-	}
+	qs.Find(&list)
+
 	return list, count
 }
 

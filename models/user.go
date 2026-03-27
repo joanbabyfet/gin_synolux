@@ -12,7 +12,7 @@ type User struct {
 	Id           string `gorm:"primary_key;size(32);default();description(ID)" json:"id"`
 	Origin       int8   `gorm:"default(0);null;description(注册来源 1=H5 2=PC)" json:"origin"`
 	Username     string `gorm:"unique;size(40);default();null;index;description(帐号)" json:"username"`
-	Password     string `gorm:"size(60);default();null;description(密码)" json:"-"` //密码不输出
+	Password     string `gorm:"size(60);default();null;description(密码)" json:"password"` //密码不输出, 改为可以接收
 	Avatar       string `gorm:"size(100);default();null;description(头像)" json:"avatar"`
 	Realname     string `gorm:"size(50);default();null;index;description(姓名)" json:"realname"`
 	Sex          int8   `gorm:"default(1);null;description(性别 0=女 1=男)" json:"sex"`

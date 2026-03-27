@@ -4,6 +4,7 @@ import (
 	"gin-synolux/dto"
 	"reflect"
 
+	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 )
 
@@ -43,7 +44,7 @@ func (m *Ad) All(query dto.AdQuery) (list []*Ad) {
 }
 
 // 获取分页列表
-func (m *Ad) PageList(query dto.AdQuery) ([]*Ad, int64) {
+func (m *Ad) List(query dto.AdQuery) ([]*Ad, int64) {
 	qs := DB.Self.Model(new(Ad))
 	qs = qs.Where("delete_time = ?", 0) //未删除
 	if !reflect.ValueOf(&query.Status).IsNil() {
@@ -76,14 +77,32 @@ func (m *Ad) GetById(id int) (v *Ad, err error) {
 	return v, nil
 }
 
-// 单条添加
-func (m *Ad) Add() error {
-	return DB.Self.Create(&m).Error
+// 获取单条(支持事务)
+func (m *Ad) GetByIdTx(tx *gorm.DB, id int) (v *Ad, err error) {
+	v = &Ad{}
+	d := tx.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
+	if d.Error != nil {
+		return nil, d.Error
+	}
+	return v, nil
 }
 
-// 更新
-func (m *Ad) UpdateById() error {
-	return DB.Self.Save(m).Error
+// 单条添加(支持事务)
+func (m *Ad) Add(tx ...*gorm.DB) error {
+	db := DB.Self
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0] // 使用事务对象
+    }
+    return db.Create(m).Error
+}
+
+// 更新(支持事务)
+func (m *Ad) UpdateById(tx ...*gorm.DB) error {
+	db := DB.Self
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0] // 使用事务对象
+    }
+    return db.Save(m).Error
 }
 
 // 删除

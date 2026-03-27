@@ -7,4 +7,8 @@ type AdQuery struct {
 	Catid  int `json:"catid"`
 	Type   int `json:"type"`
 	Status int `json:"status"`
+	Limit  int    `json:"limit"`
+	Catids []int  `json:"catids"`
+	Count	bool  `json:"count"`
+	IsAdmin bool   `json:"is_admin"` // 是否后台请求
 }

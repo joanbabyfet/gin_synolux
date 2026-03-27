@@ -12,18 +12,21 @@ import (
 
 type ArticleController struct {
 	AdminBaseController
+	Service *service.ArticleService //依赖注入
 }
 
 // 获取列表
 func (c *ArticleController) Index(ctx *gin.Context) {
-	catid, _ := strconv.Atoi(ctx.Query("catid"))
+	catid, _ := strconv.Atoi(ctx.DefaultQuery("catid", "0"))
 	title := ctx.Query("title")
-	page, err := strconv.Atoi(ctx.Query("page"))
-	if err != nil || page < 1 {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+
+	if page < 1 {
 		page = 1
 	}
-	page_size, _ := strconv.Atoi(ctx.Query("page_size"))
-	if err != nil || page_size < 1 {
+
+	if page_size < 1 {
 		page_size = 10
 	}
 
@@ -38,31 +41,21 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 		Status:   1,
 		Count: true,
 	}
-	service_article := &service.ArticleService{}
-	list, count := service_article.List(query)
+	list, count := c.Service.List(query)
 
-	//构造 JSON 的 map
-	res := gin.H{
-		"list": list,
-	}
-
-	//显示总条数
-	if query.Count {
-		res["count"] = count
-	}
-
-	c.SuccessJson(ctx, "success", res)
+	c.SuccessJson(ctx, "success", gin.H{
+		"list":  list, 	//构造 JSON 的 map
+		"count": count, //显示总条数
+	})
 }
 
 // 获取详情
 func (c *ArticleController) Detail(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Query("id"))
 	
-	service_article := new(service.ArticleService)
-	info, err := service_article.GetById(id)
+	info, err := c.Service.GetById(id)
 	if err != nil {
-		se := err.(*service.ServiceError);
-		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", info)
@@ -72,11 +65,11 @@ func (c *ArticleController) Detail(ctx *gin.Context) {
 func (c *ArticleController) Save(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 	catid, _ := strconv.Atoi(ctx.PostForm("catid"))
+	status, _ := strconv.Atoi(ctx.PostForm("status"))
 	title := ctx.PostForm("title")
 	info := ctx.PostForm("info")
 	content := ctx.PostForm("content")
 	author := ctx.PostForm("author")
-	status, _ := strconv.Atoi(ctx.PostForm("status"))
 
 	//组装实体
 	entity := models.Article{
@@ -88,11 +81,9 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 		Author:  author,
 		Status:  int8(status),
 	}
-	service_article := new(service.ArticleService)
-	err := service_article.Save(entity, true)
+	err := c.Service.Save(entity, true)
 	if err != nil {
-		se := err.(*service.ServiceError);
-		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -102,11 +93,9 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 func (c *ArticleController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	service_article := new(service.ArticleService)
-	err := service_article.DeleteById(id, true)
+	err := c.Service.DeleteById(id, true)
 	if err != nil {
-		se := err.(*service.ServiceError);
-		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -116,11 +105,9 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 func (c *ArticleController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	service_article := new(service.ArticleService)
-	err := service_article.ChangeStatus(id, 1, true)
+	err := c.Service.ChangeStatus(id, 1, true)
 	if err != nil {
-		se := err.(*service.ServiceError);
-		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -130,11 +117,9 @@ func (c *ArticleController) Enable(ctx *gin.Context) {
 func (c *ArticleController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	service_article := new(service.ArticleService)
-	err := service_article.ChangeStatus(id, 0, true)
+	err := c.Service.ChangeStatus(id, 0, true)
 	if err != nil {
-		se := err.(*service.ServiceError);
-		c.ErrorJson(ctx, se.Code, se.Msg, nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)

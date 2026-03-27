@@ -4,73 +4,55 @@ import (
 	"gin-synolux/dto"
 	"gin-synolux/models"
 	"gin-synolux/service"
+	"gin-synolux/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/thedevsaddam/govalidator"
 )
 
 type AdController struct {
 	AdminBaseController
+	Service *service.AdService
 }
 
 // 获取列表
 func (c *AdController) Index(ctx *gin.Context) {
-	catid, _ := strconv.Atoi(ctx.Query("catid"))
-	page, _ := strconv.Atoi(ctx.Query("page"))
-	page_size, _ := strconv.Atoi(ctx.Query("page_size"))
+	catid, _ := strconv.Atoi(ctx.DefaultQuery("catid", "0"))
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	
 	if page < 1 {
 		page = 1
 	}
 	if page_size < 1 {
 		page_size = 10
 	}
+	
+	//获取广告列表
+	query := dto.AdQuery{
+		Catid:    catid,
+		Pager: utils.Pager{
+			Page:     page,
+			PageSize: page_size,
+		},
+		Status:   1,
+		Count: true,
+	}
+	list, count := c.Service.List(query)
 
-	//获取文䓬列表
-	query := dto.AdQuery{}
-	query.Catid = catid
-	query.Page = page
-	query.PageSize = page_size
-	query.Status = 1
-	service_article := new(service.AdService)
-	list, total := service_article.PageList(query)
-
-	//组装数据
-	resp := make(map[string]interface{}) //创建1个空集合
-	resp["total"] = total
-	resp["list"] = list
-	c.SuccessJson(ctx, "success", resp)
+	c.SuccessJson(ctx, "success", gin.H{
+		"list":  list, 	//构造 JSON 的 map
+		"count": count, //显示总条数
+	})
 }
 
 // 获取详情
 func (c *AdController) Detail(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Query("id"))
-
-	//参数验证
-	entity := models.Ad{Id: id}
-	rules := govalidator.MapData{}
-	rules["id"] = []string{"required"}
-	messages := govalidator.MapData{}
-	messages["id"] = []string{"required:id 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_article := new(service.AdService)
-	info, err := service_article.GetById(id)
+	
+	info, err := c.Service.GetById(id)
 	if err != nil {
-		c.ErrorJson(ctx, -2, err.Error(), nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", info)
@@ -83,40 +65,16 @@ func (c *AdController) Save(ctx *gin.Context) {
 	title := ctx.PostForm("title")
 	status, _ := strconv.Atoi(ctx.PostForm("status"))
 
-	//参数验证
+	//组装实体
 	entity := models.Ad{
 		Id:     id,
 		Catid:  catid,
 		Title:  title,
 		Status: int8(status),
 	}
-	rules := govalidator.MapData{}
-	messages := govalidator.MapData{}
-	if entity.Id > 0 {
-		rules["id"] = []string{"required"}
-		messages["id"] = []string{"required:id 不能为空"}
-	}
-	rules["title"] = []string{"required"}
-	messages["title"] = []string{"required:title 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_article := new(service.AdService)
-	stat, err := service_article.Save(entity)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := c.Service.Save(entity, true)
+	if err != nil {
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -126,31 +84,9 @@ func (c *AdController) Save(ctx *gin.Context) {
 func (c *AdController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	//参数验证
-	entity := models.Ad{Id: id}
-	rules := govalidator.MapData{}
-	messages := govalidator.MapData{}
-	rules["id"] = []string{"required"}
-	messages["id"] = []string{"required:id 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_article := new(service.AdService)
-	stat, err := service_article.DeleteById(id)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := c.Service.DeleteById(id, true)
+	if err != nil {
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -160,31 +96,9 @@ func (c *AdController) Delete(ctx *gin.Context) {
 func (c *AdController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	//参数验证
-	entity := models.Ad{Id: id}
-	rules := govalidator.MapData{}
-	messages := govalidator.MapData{}
-	rules["id"] = []string{"required"}
-	messages["id"] = []string{"required:id 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_article := new(service.AdService)
-	stat, err := service_article.EnableById(id)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := c.Service.ChangeStatus(id, 1, true)
+	if err != nil {
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)
@@ -194,31 +108,9 @@ func (c *AdController) Enable(ctx *gin.Context) {
 func (c *AdController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	//参数验证
-	entity := models.Ad{Id: id}
-	rules := govalidator.MapData{}
-	messages := govalidator.MapData{}
-	rules["id"] = []string{"required"}
-	messages["id"] = []string{"required:id 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_article := new(service.AdService)
-	stat, err := service_article.DisableById(id)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := c.Service.ChangeStatus(id, 0, true)
+	if err != nil {
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)

@@ -10,6 +10,7 @@ import (
 
 type UploadController struct {
 	BaseController
+	Service *service.UploadService
 }
 
 // 上传图片
@@ -26,8 +27,7 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 		dir = "image"
 	}
 
-	service_upload := new(service.UploadService)
-	stat, data, err := service_upload.Upload(ctx, f, dir, thumb_w, thumb_h)
+	stat, data, err := c.Service.Upload(ctx, f, dir, thumb_w, thumb_h)
 	if stat < 0 {
 		c.ErrorJson(ctx, stat, err.Error(), nil)
 		return

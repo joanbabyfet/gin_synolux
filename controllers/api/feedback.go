@@ -6,11 +6,11 @@ import (
 	"gin-synolux/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/thedevsaddam/govalidator"
 )
 
 type FeedbackController struct {
 	BaseController
+	Service *service.FeedbackService //依赖注入
 }
 
 // 保存
@@ -27,29 +27,9 @@ func (c *FeedbackController) Save(ctx *gin.Context) {
 		Email:   email,
 		Content: content,
 	}
-	rules := govalidator.MapData{}
-	rules["name"] = []string{"required"}
-	messages := govalidator.MapData{}
-	messages["name"] = []string{"required:name 不能为空"}
-	opts := govalidator.Options{
-		Data:            &entity,
-		Rules:           rules,
-		Messages:        messages,
-		RequiredDefault: false,
-	}
-	valid := govalidator.New(opts)
-	e := valid.ValidateStruct()
-	if len(e) > 0 {
-		for _, err := range e {
-			c.ErrorJson(ctx, -1, err[0], nil)
-			return
-		}
-	}
-
-	service_feedback := new(service.FeedbackService)
-	stat, err := service_feedback.Save(entity)
-	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+	err := c.Service.Save(entity, false)
+	if err != nil {
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", nil)

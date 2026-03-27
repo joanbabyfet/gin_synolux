@@ -10,6 +10,7 @@ import (
 
 type UploadController struct {
 	AdminBaseController
+	Service *service.UploadService
 }
 
 // 上传图片
@@ -18,6 +19,7 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	dir := ctx.PostForm("dir")                          //文件上传目录, 默认image
 	thumb_w, _ := strconv.Atoi(ctx.PostForm("thumb_w")) //缩图宽
 	thumb_h, _ := strconv.Atoi(ctx.PostForm("thumb_h")) //缩图高
+	
 	if err != nil {
 		c.ErrorJson(ctx, -1, "上传文件失败", nil)
 		return
@@ -26,10 +28,9 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 		dir = "image"
 	}
 
-	service_upload := new(service.UploadService)
-	stat, data, err := service_upload.Upload(ctx, f, dir, thumb_w, thumb_h)
+	stat, data, err := c.Service.Upload(ctx, f, dir, thumb_w, thumb_h)
 	if stat < 0 {
-		c.ErrorJson(ctx, stat, err.Error(), nil)
+		c.handleError(ctx, err)
 		return
 	}
 	c.SuccessJson(ctx, "success", data)

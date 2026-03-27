@@ -27,58 +27,83 @@ func Init() *gin.Engine {
 	api := router.Group("/api")
 	{
 		v1 := api.Group("/v1")
+
+		//不需要登录
+		public := v1.Group("")
 		{
-			v1.GET("/article", new(controllers.ArticleController).Index)
-			v1.GET("/article/detail", new(controllers.ArticleController).Detail)
-			v1.POST("/article/save", new(controllers.ArticleController).Save)
-			v1.POST("/article/delete", new(controllers.ArticleController).Delete)
-			v1.POST("/article/enable", new(controllers.ArticleController).Enable)
-			v1.POST("/article/disable", new(controllers.ArticleController).Disable)
-			v1.POST("/upload", new(controllers.UploadController).Upload)
-			v1.GET("/download", new(controllers.UploadController).Download)
-			v1.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
-			v1.GET("/ip", new(controllers.CommonController).Ip)
-			v1.GET("/ping", new(controllers.CommonController).Ping)
-			v1.GET("/captcha", new(controllers.CommonController).Captcha) //获取验证码
-			v1.GET("/test", new(controllers.TestController).Test)
-			v1.POST("/login", new(controllers.UserController).Login) //登录
-			v1.POST("/logout", new(controllers.UserController).Logout)
-			v1.POST("/set_password", new(controllers.UserController).SetPassword)
-			v1.GET("/get_userinfo", new(controllers.UserController).GetUserInfo) //获取用户信息
-			v1.POST("/register", new(controllers.UserController).Register)
-			v1.POST("/profile", new(controllers.UserController).Profile)
-			v1.POST("/feedback", new(controllers.FeedbackController).Save)
-			v1.GET("/weather", new(controllers.CommonController).Weather)   //获取天气信息
-			v1.GET("/hardware", new(controllers.CommonController).Hardware) //获取系统信息
-			v1.GET("/gist", new(controllers.CommonController).Gist)         //获取Gist信息
-			v1.GET("/movie", new(controllers.MovieController).Index)        //视频列表
+			public.GET("/captcha", new(controllers.CommonController).Captcha)
+			public.POST("/login", new(controllers.UserController).Login)
+			public.POST("/register", new(controllers.UserController).Register)
+			public.GET("/article", new(controllers.ArticleController).Index)
+			public.GET("/article/detail", new(controllers.ArticleController).Detail)
+			public.GET("/ping", new(controllers.CommonController).Ping)
+			public.GET("/weather", new(controllers.CommonController).Weather)
+		}
+
+		//需要登录
+		auth := v1.Group("")
+		auth.Use(middleware.AuthMiddleware())
+		{
+			auth.POST("/article/save", new(controllers.ArticleController).Save)
+			auth.POST("/article/delete", new(controllers.ArticleController).Delete)
+			auth.POST("/article/enable", new(controllers.ArticleController).Enable)
+			auth.POST("/article/disable", new(controllers.ArticleController).Disable)
+
+			auth.POST("/upload", new(controllers.UploadController).Upload)
+			auth.GET("/download", new(controllers.UploadController).Download)
+
+			auth.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
+			auth.GET("/ip", new(controllers.CommonController).Ip)
+			
+			auth.POST("/logout", new(controllers.UserController).Logout)
+			auth.POST("/set_password", new(controllers.UserController).SetPassword)
+			auth.GET("/get_userinfo", new(controllers.UserController).GetUserInfo)
+			auth.POST("/profile", new(controllers.UserController).Profile)
+			auth.POST("/feedback", new(controllers.FeedbackController).Save)
+
+			auth.GET("/hardware", new(controllers.CommonController).Hardware)
+			auth.GET("/gist", new(controllers.CommonController).Gist)
+			auth.GET("/movie", new(controllers.MovieController).Index)
 		}
 	}
 	admin_api := router.Group("/admin_api")
 	{
 		v1 := admin_api.Group("/v1")
+
+		// 不需要登录
+		public := v1.Group("")
 		{
-			v1.GET("/article", new(admin.ArticleController).Index)
-			v1.GET("/article/detail", new(admin.ArticleController).Detail)
-			v1.POST("/article/save", new(admin.ArticleController).Save)
-			v1.POST("/article/delete", new(admin.ArticleController).Delete)
-			v1.POST("/article/enable", new(admin.ArticleController).Enable)
-			v1.POST("/article/disable", new(admin.ArticleController).Disable)
-			v1.GET("/ad", new(admin.AdController).Index)
-			v1.GET("/ad/detail", new(admin.AdController).Detail)
-			v1.POST("/ad/save", new(admin.AdController).Save)
-			v1.POST("/ad/delete", new(admin.AdController).Delete)
-			v1.POST("/ad/enable", new(admin.AdController).Enable)
-			v1.POST("/ad/disable", new(admin.AdController).Disable)
-			v1.POST("/upload", new(admin.UploadController).Upload)
-			v1.GET("/download", new(admin.UploadController).Download)
-			v1.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
-			v1.GET("/ip", new(admin.CommonController).Ip)
-			v1.GET("/ping", new(admin.CommonController).Ping)
-			v1.GET("/captcha", new(admin.CommonController).Captcha) //获取验证码
-			v1.GET("/test", new(admin.TestController).Test)
-			v1.GET("/queue", new(admin.TestController).Queue) //测试生产者
-			v1.POST("/send_msg", new(admin.CommonController).SendMsg)
+			public.GET("/captcha", new(admin.CommonController).Captcha)
+		}
+
+		// 需要 admin 权限
+		auth := v1.Group("")
+		auth.Use(middleware.AuthMiddleware())
+		{
+			auth.GET("/article", new(admin.ArticleController).Index)
+			auth.GET("/article/detail", new(admin.ArticleController).Detail)
+			auth.POST("/article/save", new(admin.ArticleController).Save)
+			auth.POST("/article/delete", new(admin.ArticleController).Delete)
+			auth.POST("/article/enable", new(admin.ArticleController).Enable)
+			auth.POST("/article/disable", new(admin.ArticleController).Disable)
+
+			auth.GET("/ad", new(admin.AdController).Index)
+			auth.GET("/ad/detail", new(admin.AdController).Detail)
+			auth.POST("/ad/save", new(admin.AdController).Save)
+			auth.POST("/ad/delete", new(admin.AdController).Delete)
+			auth.POST("/ad/enable", new(admin.AdController).Enable)
+			auth.POST("/ad/disable", new(admin.AdController).Disable)
+
+			auth.POST("/upload", new(admin.UploadController).Upload)
+			auth.GET("/download", new(admin.UploadController).Download)
+
+			auth.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
+			auth.GET("/ip", new(admin.CommonController).Ip)
+			auth.GET("/ping", new(admin.CommonController).Ping)
+
+			auth.GET("/test", new(admin.TestController).Test)
+			auth.GET("/queue", new(admin.TestController).Queue)
+			auth.POST("/send_msg", new(admin.CommonController).SendMsg)
 		}
 	}
 	return router
