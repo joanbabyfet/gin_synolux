@@ -4,7 +4,7 @@ package queue
 import (
 	"bytes"
 	"encoding/gob"
-	"gin-synolux/utils"
+	"gin-synolux/common"
 	"log"
 
 	"github.com/streadway/amqp"
@@ -32,7 +32,7 @@ func init() {
 }
 
 func NewSender(queue_name string, job string, send_msg interface{}) *Sender {
-	msg := utils.ByteEncoder(send_msg)
+	msg := common.ByteEncoder(send_msg)
 
 	//队列注册检查，可能需要借助redis来检查，暂放下
 	return &Sender{QueueName: queue_name, Job: job, Msg: msg}

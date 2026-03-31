@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"gin-synolux/utils"
+	"gin-synolux/common"
 	"io/ioutil"
 	"net/http"
 
@@ -17,16 +17,16 @@ type CommonController struct {
 func (c *CommonController) ChatGPT(ctx *gin.Context) {
 	keyword := ctx.Query("keyword")
 
-	stat, content := utils.ChatGPT(keyword)
+	stat, content := common.ChatGPT(keyword)
 	if !stat {
-		c.ErrorJson(ctx, -1, "发送错误", nil)
+		common.Fail(ctx, -1, "发送错误", nil)
 		return
 	}
 	//组装数据
 	resp := make(map[string]interface{}) //创建1个空集合
 	resp["content"] = content
 
-	c.SuccessJson(ctx, "success", resp)
+	common.Success(ctx, resp)
 }
 
 // 返回客户端ip
@@ -34,19 +34,19 @@ func (c *CommonController) Ip(ctx *gin.Context) {
 	//组装数据
 	resp := make(map[string]interface{}) //创建1个空集合
 	resp["ip"] = ctx.ClientIP()
-	c.SuccessJson(ctx, "success", resp)
+	common.Success(ctx, resp)
 }
 
 // 检测用,可查看是否返回信息及时间戳
 func (c *CommonController) Ping(ctx *gin.Context) {
-	c.SuccessJson(ctx, "pong", nil)
+	common.Success(ctx, nil, "pong")
 }
 
 // 获取图形验证码
 func (c *CommonController) Captcha(ctx *gin.Context) {
-	id, b64s, _, err := utils.GetCaptcha()
+	id, b64s, _, err := common.GetCaptcha()
 	if err != nil {
-		c.ErrorJson(ctx, -1, "生成验证码错误", nil)
+		common.Fail(ctx, -1, "生成验证码错误", nil)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (c *CommonController) Captcha(ctx *gin.Context) {
 	resp := make(map[string]interface{}) //创建1个空集合
 	resp["key"] = id
 	resp["img"] = b64s
-	c.SuccessJson(ctx, "success", resp)
+	common.Success(ctx, resp)
 }
 
 // 获取彩云天气数据
@@ -64,7 +64,7 @@ func (c *CommonController) Weather(ctx *gin.Context) {
 	url := "https://api.caiyunapp.com/v2.6/3mvCFBpeZ4qWAtim/121.4159,31.0281/weather?alert=true"
 	res, err := http.Get(url)
 	if err != nil || res.StatusCode != http.StatusOK {
-		c.ErrorJson(ctx, -1, "请求错误", nil)
+		common.Fail(ctx, -1, "请求错误", nil)
 		return
 	}
 	// body := res.Body
@@ -77,17 +77,17 @@ func (c *CommonController) Weather(ctx *gin.Context) {
 	body, _ := ioutil.ReadAll(res.Body)
 	var info interface{}
 	json.Unmarshal(body, &info)
-	c.SuccessJson(ctx, "success", &info)
+	common.Success(ctx, &info)
 }
 
 // 获取系统信息
 func (c *CommonController) Hardware(ctx *gin.Context) {
 	//cpu使用率
-	cpu_usage, _ := utils.GetCpuPercent()
+	cpu_usage, _ := common.GetCpuPercent()
 	//cpu温度
-	cpu_temp, _ := utils.GetCpuTemp()
+	cpu_temp, _ := common.GetCpuTemp()
 	//内存使用率
-	ram_usage, _ := utils.GetRamPercent()
+	ram_usage, _ := common.GetRamPercent()
 
 	//获取wifi信息
 	wifi_status := make(map[string]interface{})
@@ -100,7 +100,7 @@ func (c *CommonController) Hardware(ctx *gin.Context) {
 	resp["ram_usage"] = ram_usage
 	resp["cpu_temp"] = cpu_temp
 	resp["wifi_status"] = wifi_status
-	c.SuccessJson(ctx, "success", resp)
+	common.Success(ctx, resp)
 }
 
 // 获取Gist数据
@@ -108,12 +108,12 @@ func (c *CommonController) Gist(ctx *gin.Context) {
 	url := "https://api.github.com/gists/82d4bb9fce4cd96752d66d7b3c832415"
 	res, err := http.Get(url)
 	if err != nil || res.StatusCode != http.StatusOK {
-		c.ErrorJson(ctx, -1, "请求错误", nil)
+		common.Fail(ctx, -1, "请求错误", nil)
 		return
 	}
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 	var info interface{}
 	json.Unmarshal(body, &info)
-	c.SuccessJson(ctx, "success", &info)
+	common.Success(ctx, &info)
 }

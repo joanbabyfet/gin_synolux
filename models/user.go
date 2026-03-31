@@ -1,9 +1,6 @@
 package models
 
 import (
-	"gin-synolux/dto"
-	"reflect"
-
 	"github.com/spf13/viper"
 )
 
@@ -38,56 +35,4 @@ type User struct {
 
 func (m *User) TableName() string {
 	return viper.GetString("db.prefix") + "user"
-}
-
-// 获取全部列表
-func (m *User) All(query dto.UserQuery) (list []*User) {
-	qs := DB.Self.Model(new(User))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	qs.Order("create_time desc").Find(&list)
-	return list
-}
-
-// 获取分页列表
-func (m *User) PageList(query dto.UserQuery) ([]*User, int64) {
-	qs := DB.Self.Model(new(User))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	//总条数
-	var count int64
-	qs.Count(&count)
-	var list []*User
-	if count > 0 {
-		offset := (query.Page - 1) * query.PageSize
-		qs.Order("create_time desc").Limit(query.PageSize).Offset(offset).Find(&list)
-	}
-	if reflect.ValueOf(list).IsNil() {
-		list = make([]*User, 0) //赋值为空切片[]
-	}
-	return list, count
-}
-
-// 获取单条
-func (m *User) GetById(id string) (v *User, err error) {
-	v = &User{}
-	d := DB.Self.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	return v, nil
-}
-
-// 单条添加
-func (m *User) Add() error {
-	return DB.Self.Create(&m).Error
-}
-
-// 更新
-func (m *User) UpdateById() error {
-	return DB.Self.Save(m).Error
-}
-
-// 删除
-func (m *User) DeleteById(id string) error {
-	m.Id = id
-	return DB.Self.Delete(m).Error
 }

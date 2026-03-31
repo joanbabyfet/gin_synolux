@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gin-synolux/models"
+	"gin-synolux/common"
+	"gin-synolux/db"
 	"gin-synolux/routers"
-	"gin-synolux/utils"
 	"net/http"
 	"time"
 
@@ -19,21 +19,24 @@ func main() {
 	pflag.Parse()
 
 	//初始化配置
-	if err := utils.InitConfig(*cfg); err != nil {
+	if err := common.InitConfig(*cfg); err != nil {
 		panic(err)
 	}
 	// 设置gin运行模式
 	gin.SetMode(gin.DebugMode)
 
-	//数据库初始化
-	models.DB.Init()
-	defer models.DB.Close() //延迟关闭
+	//初始化数据库
+	if err := db.DB.Init(); err != nil {
+		panic("数据库未初始化成功")
+	}
+
+	defer db.DB.Close() //延迟关闭
 
 	//初始化定时任务
-	//utils.CrontabInit()
+	//common.CrontabInit()
 
 	//初始化工作队列
-	//utils.InitRedisQueue()
+	//common.InitRedisQueue()
 
 	//路由
 	router := routers.Init()

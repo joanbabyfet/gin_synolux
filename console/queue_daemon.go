@@ -2,9 +2,9 @@
 package main
 
 import (
+	"gin-synolux/common"
 	"gin-synolux/jobs"
 	"gin-synolux/queue"
-	"gin-synolux/utils"
 
 	"github.com/spf13/pflag"
 )
@@ -16,7 +16,7 @@ func main() {
 	pflag.Parse()
 
 	//初始化配置
-	if err := utils.InitConfig(*cfg); err != nil {
+	if err := common.InitConfig(*cfg); err != nil {
 		panic(err)
 	}
 

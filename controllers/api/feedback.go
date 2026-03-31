@@ -2,6 +2,7 @@
 package controllers
 
 import (
+	"gin-synolux/common"
 	"gin-synolux/models"
 	"gin-synolux/service"
 
@@ -13,6 +14,10 @@ type FeedbackController struct {
 	Service *service.FeedbackService //依赖注入
 }
 
+func NewFeedbackController(s *service.FeedbackService) *FeedbackController {
+	return &FeedbackController{Service: s}
+}
+
 // 保存
 func (c *FeedbackController) Save(ctx *gin.Context) {
 	name := ctx.PostForm("name")
@@ -21,16 +26,16 @@ func (c *FeedbackController) Save(ctx *gin.Context) {
 	content := ctx.PostForm("content")
 
 	//参数验证
-	entity := models.Feedback{
+	data := models.Feedback{
 		Name:    name,
 		Mobile:  mobile,
 		Email:   email,
 		Content: content,
 	}
-	err := c.Service.Save(entity, false)
+	err := c.Service.Save(data, false)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }

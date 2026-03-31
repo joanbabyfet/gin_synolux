@@ -3,6 +3,8 @@ package routers
 import (
 	admin "gin-synolux/controllers/admin"
 	controllers "gin-synolux/controllers/api"
+	"gin-synolux/db"
+	"gin-synolux/service"
 
 	"gin-synolux/middleware"
 
@@ -13,98 +15,115 @@ import (
 func Init() *gin.Engine {
 	router := gin.New()
 
-	//设置静态资源路径
-	router.Static("/uploads", "./uploads")
-	//加载视图
-	router.LoadHTMLGlob("views/*")
+	// ===== 依赖注入 =====
+	articleService := service.NewArticleService(db.DB.Self)
+	adService := service.NewAdService(db.DB.Self)
+	feedbackService := service.NewFeedbackService(db.DB.Self)
+	movieService := service.NewMovieService(db.DB.Self)
+	userService := service.NewUserService(db.DB.Self)
+	uploadService := service.NewUploadService(db.DB.Self)
 
-	//跨域解决, 使用路由前进行设置，否则会导致不生效
+	//后台
+	adminAd := admin.NewAdController(adService)
+	adminArticle := admin.NewArticleController(articleService)
+	adminMovie := admin.NewMovieController(movieService)
+	adminUpload := admin.NewUploadController(uploadService)
+
+	//api
+	apiArticle := controllers.NewArticleController(articleService)
+	apiFeedback := controllers.NewFeedbackController(feedbackService)
+	apiUser := controllers.NewUserController(userService)
+	apiUpload := admin.NewUploadController(uploadService)
+
+	// ===== 中间件 =====
 	router.Use(middleware.Cors())
-	//设置多语言文件
 	router.Use(middleware.SetLocale())
 
-	//路由分组
-	api := router.Group("/api")
+	router.Static("/uploads", "./uploads")
+	router.LoadHTMLGlob("views/*")
+
+	// =========================
+	// 前台 API
+	// =========================
+	api := router.Group("/api/v1")
 	{
-		v1 := api.Group("/v1")
+		// 公共接口
+		api.GET("/captcha", new(controllers.CommonController).Captcha)
+		api.GET("/ping", new(controllers.CommonController).Ping)
 
-		//不需要登录
-		public := v1.Group("")
-		{
-			public.GET("/captcha", new(controllers.CommonController).Captcha)
-			public.POST("/login", new(controllers.UserController).Login)
-			public.POST("/register", new(controllers.UserController).Register)
-			public.GET("/article", new(controllers.ArticleController).Index)
-			public.GET("/article/detail", new(controllers.ArticleController).Detail)
-			public.GET("/ping", new(controllers.CommonController).Ping)
-			public.GET("/weather", new(controllers.CommonController).Weather)
-		}
+		//用户
+		api.POST("/login", apiUser.Login)
+		api.POST("/register", apiUser.Register)
 
-		//需要登录
-		auth := v1.Group("")
-		auth.Use(middleware.AuthMiddleware())
-		{
-			auth.POST("/article/save", new(controllers.ArticleController).Save)
-			auth.POST("/article/delete", new(controllers.ArticleController).Delete)
-			auth.POST("/article/enable", new(controllers.ArticleController).Enable)
-			auth.POST("/article/disable", new(controllers.ArticleController).Disable)
-
-			auth.POST("/upload", new(controllers.UploadController).Upload)
-			auth.GET("/download", new(controllers.UploadController).Download)
-
-			auth.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
-			auth.GET("/ip", new(controllers.CommonController).Ip)
-			
-			auth.POST("/logout", new(controllers.UserController).Logout)
-			auth.POST("/set_password", new(controllers.UserController).SetPassword)
-			auth.GET("/get_userinfo", new(controllers.UserController).GetUserInfo)
-			auth.POST("/profile", new(controllers.UserController).Profile)
-			auth.POST("/feedback", new(controllers.FeedbackController).Save)
-
-			auth.GET("/hardware", new(controllers.CommonController).Hardware)
-			auth.GET("/gist", new(controllers.CommonController).Gist)
-			auth.GET("/movie", new(controllers.MovieController).Index)
-		}
+		// 文章（只读）
+		api.GET("/article", apiArticle.Index)
+		api.GET("/article/detail", apiArticle.Detail)
+		api.GET("/home_article", apiArticle.HomeArticle)
 	}
-	admin_api := router.Group("/admin_api")
+
+	// =========================
+	// 前台登录用户
+	// =========================
+	apiAuth := router.Group("/api/v1")
+	apiAuth.Use(middleware.AuthMiddleware())
 	{
-		v1 := admin_api.Group("/v1")
+		//用户
+		apiAuth.POST("/logout", apiUser.Logout)
+		apiAuth.GET("/get_userinfo", apiUser.GetUserInfo) //获取用户信息
+		apiAuth.POST("/profile", apiUser.Profile)
+		apiAuth.POST("/set_password", apiUser.SetPassword)
 
-		// 不需要登录
-		public := v1.Group("")
-		{
-			public.GET("/captcha", new(admin.CommonController).Captcha)
-		}
+		apiAuth.POST("/upload", apiUpload.Upload)
+		apiAuth.GET("/download", apiUpload.Download)
 
-		// 需要 admin 权限
-		auth := v1.Group("")
-		auth.Use(middleware.AuthMiddleware())
-		{
-			auth.GET("/article", new(admin.ArticleController).Index)
-			auth.GET("/article/detail", new(admin.ArticleController).Detail)
-			auth.POST("/article/save", new(admin.ArticleController).Save)
-			auth.POST("/article/delete", new(admin.ArticleController).Delete)
-			auth.POST("/article/enable", new(admin.ArticleController).Enable)
-			auth.POST("/article/disable", new(admin.ArticleController).Disable)
+		apiAuth.POST("/feedback", apiFeedback.Save)
 
-			auth.GET("/ad", new(admin.AdController).Index)
-			auth.GET("/ad/detail", new(admin.AdController).Detail)
-			auth.POST("/ad/save", new(admin.AdController).Save)
-			auth.POST("/ad/delete", new(admin.AdController).Delete)
-			auth.POST("/ad/enable", new(admin.AdController).Enable)
-			auth.POST("/ad/disable", new(admin.AdController).Disable)
-
-			auth.POST("/upload", new(admin.UploadController).Upload)
-			auth.GET("/download", new(admin.UploadController).Download)
-
-			auth.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
-			auth.GET("/ip", new(admin.CommonController).Ip)
-			auth.GET("/ping", new(admin.CommonController).Ping)
-
-			auth.GET("/test", new(admin.TestController).Test)
-			auth.GET("/queue", new(admin.TestController).Queue)
-			auth.POST("/send_msg", new(admin.CommonController).SendMsg)
-		}
+		apiAuth.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
+		apiAuth.GET("/ip", new(controllers.CommonController).Ip)
 	}
+
+	// =========================
+	// 后台 API（必须登录）
+	// =========================
+	adminAPI := router.Group("/admin_api/v1")
+	adminAPI.Use(middleware.AuthMiddleware())
+	{
+		// 文章管理（完整权限）
+		adminAPI.GET("/article", adminArticle.Index)
+		adminAPI.GET("/article/detail", adminArticle.Detail)
+		adminAPI.POST("/article/save", adminArticle.Save)
+		adminAPI.POST("/article/delete", adminArticle.Delete)
+		adminAPI.POST("/article/enable", adminArticle.Enable)
+		adminAPI.POST("/article/disable", adminArticle.Disable)
+
+		// 广告管理（完整权限）
+		adminAPI.GET("/ad", adminAd.Index)
+		adminAPI.GET("/ad/detail", adminAd.Detail)
+		adminAPI.POST("/ad/save", adminAd.Save)
+		adminAPI.POST("/ad/delete", adminAd.Delete)
+		adminAPI.POST("/ad/enable", adminAd.Enable)
+		adminAPI.POST("/ad/disable", adminAd.Disable)
+		
+		//视频管理
+		adminAPI.GET("/movie", adminMovie.Index)
+		adminAPI.GET("/movie/detail", adminMovie.Detail)
+		adminAPI.POST("/movie/save", adminMovie.Save)
+		adminAPI.POST("/movie/delete", adminMovie.Delete)
+		adminAPI.POST("/movie/enable", adminMovie.Enable)
+		adminAPI.POST("/movie/disable", adminMovie.Disable)
+
+		// 其他
+		adminAPI.POST("/upload", adminUpload.Upload)
+		adminAPI.GET("/download", adminUpload.Download)
+
+		adminAPI.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
+		adminAPI.GET("/ip", new(admin.CommonController).Ip)
+		adminAPI.GET("/ping", new(admin.CommonController).Ping)
+
+		adminAPI.GET("/test", new(admin.TestController).Test)
+		adminAPI.GET("/queue", new(admin.TestController).Queue)
+		adminAPI.POST("/send_msg", new(admin.CommonController).SendMsg)
+	}
+
 	return router
 }

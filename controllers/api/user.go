@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"gin-synolux/common"
 	"gin-synolux/models"
 	"gin-synolux/service"
-	"gin-synolux/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +16,10 @@ type UserController struct {
 	Service *service.UserService //依赖注入
 }
 
+func NewUserController(s *service.UserService) *UserController {
+	return &UserController{Service: s}
+}
+
 // 登录
 func (c *UserController) Login(ctx *gin.Context) {
 	username := ctx.PostForm("username") //帐号
@@ -26,17 +30,17 @@ func (c *UserController) Login(ctx *gin.Context) {
 
 	info, err := c.Service.Login(username, password, key, code, ip)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", info)
+	common.Success(ctx, info)
 }
 
 // 登录退出 (JWT + Redis 黑名单)
 func (c *UserController) Logout(ctx *gin.Context) {
 	token := ctx.GetHeader("Authorization")
 	if token == "" {
-		c.ErrorJson(ctx, -1, "未登录", nil)
+		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
@@ -47,13 +51,13 @@ func (c *UserController) Logout(ctx *gin.Context) {
 	}
 
 	// 写入 Redis（设置过期时间 = token 剩余时间）
-	err := utils.Redis.Set("jwt:blacklist:"+token, 1, time.Hour*24).Err()
+	err := common.Redis.Set("jwt:blacklist:"+token, 1, time.Hour*24).Err()
 	if err != nil {
-		c.ErrorJson(ctx, -2, "退出失败", nil)
+		common.Fail(ctx, -2, "退出失败", nil)
 		return
 	}
 
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }
 
 // 修改密码
@@ -64,34 +68,35 @@ func (c *UserController) SetPassword(ctx *gin.Context) {
 
 	uid := ctx.GetString("userID")
 	if uid == "" {
-		c.ErrorJson(ctx, -1, "未登录", nil)
+		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
 	//修改密码
 	err := c.Service.SetPassword(password, new_password, re_password, uid)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }
 
 // 获取用户信息
 func (c *UserController) GetUserInfo(ctx *gin.Context) {
 	uid := ctx.GetString("userID")
 	if uid == "" {
-		c.ErrorJson(ctx, -1, "未登录", nil)
+		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
 	//获取用户信息
 	info, err := c.Service.GetById(uid)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", info)
+	common.Success(ctx, info)
+
 }
 
 // 注册
@@ -111,7 +116,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 	}
 
 	// 构造实体（建议后面可换 DTO）
-	entity := models.User{
+	data := models.User{
 		Username:  username,
 		Password:  password,
 		Realname:  realname,
@@ -124,12 +129,12 @@ func (c *UserController) Register(ctx *gin.Context) {
 	}
 	
 	// 构造实体（建议后面可换 DTO）
-	err = c.Service.Save(entity, false)
+	err = c.Service.Save(data)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }
 
 // 修改用户信息
@@ -139,10 +144,9 @@ func (c *UserController) Profile(ctx *gin.Context) {
 	phone_code := ctx.PostForm("phone_code")
 	phone := ctx.PostForm("phone")
 	avatar := ctx.PostForm("avatar")
-
 	uid := ctx.GetString("userID")
 	if uid == "" {
-		c.ErrorJson(ctx, -1, "未登录", nil)
+		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
@@ -152,7 +156,7 @@ func (c *UserController) Profile(ctx *gin.Context) {
 		sex = 0
 	}
 
-	entity := models.User{
+	data := models.User{
 		Id:        uid,
 		Realname:  realname,
 		Email:     email,
@@ -163,10 +167,10 @@ func (c *UserController) Profile(ctx *gin.Context) {
 	}
 
 	//保存
-	err = c.Service.Save(entity, false)
+	err = c.Service.Save(data)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }

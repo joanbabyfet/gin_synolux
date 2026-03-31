@@ -4,7 +4,7 @@ package jobs
 import (
 	"bytes"
 	"encoding/gob"
-	"gin-synolux/utils"
+	"gin-synolux/common"
 
 	"github.com/lexkong/log"
 )
@@ -22,7 +22,7 @@ func (s *SubscribeSMS) ActionSMS(args interface{}) error {
 	decoder.Decode(&scb)
 
 	//发送
-	ok := utils.SendSMS(scb.To, scb.Body)
+	ok := common.SendSMS(scb.To, scb.Body)
 	if !ok {
 		log.Error("发送短信"+scb.To+"失败", nil)
 	}

@@ -1,8 +1,7 @@
 package middleware
 
 import (
-	"gin-synolux/models"
-	"gin-synolux/utils"
+	"gin-synolux/common"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -17,27 +16,27 @@ func AuthMiddleware() gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(200, gin.H{
 				"code": -1,
 				"msg":  "未带token",
-				"timestamp": utils.Timestamp(),
+				"timestamp": common.Timestamp(),
 			})
 			return
 		}
 
-		payload, err := models.ValidateToken(kv[1])
+		payload, err := common.ValidateToken(kv[1])
 		if err != nil {
 			ctx.AbortWithStatusJSON(200, gin.H{
 				"code": -2,
 				"msg":  "未登录或登录超时",
-				"timestamp": utils.Timestamp(),
+				"timestamp": common.Timestamp(),
 			})
 			return
 		}
 
-		exists, _ := utils.Redis.Exists("jwt:blacklist:" + kv[1]).Result()
+		exists, _ := common.Redis.Exists("jwt:blacklist:" + kv[1]).Result()
 		if exists > 0 {
 			ctx.AbortWithStatusJSON(200, gin.H{
 				"code": -3,
 				"msg":  "token 已失效",
-				"timestamp": utils.Timestamp(),
+				"timestamp": common.Timestamp(),
 			})
 			return
 		}

@@ -1,10 +1,10 @@
 package admin
 
 import (
+	"gin-synolux/common"
 	"gin-synolux/dto"
 	"gin-synolux/models"
 	"gin-synolux/service"
-	"gin-synolux/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -15,12 +15,17 @@ type ArticleController struct {
 	Service *service.ArticleService //依赖注入
 }
 
+func NewArticleController(s *service.ArticleService) *ArticleController {
+	return &ArticleController{Service: s}
+}
+
 // 获取列表
 func (c *ArticleController) Index(ctx *gin.Context) {
 	catid, _ := strconv.Atoi(ctx.DefaultQuery("catid", "0"))
 	title := ctx.Query("title")
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	status := int8(1)
 
 	if page < 1 {
 		page = 1
@@ -29,36 +34,35 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 	if page_size < 1 {
 		page_size = 10
 	}
-
+	
 	//获取文䓬列表
 	query := dto.ArticleQuery{
 		Title:    title,
 		Catid:    catid,
-		Pager: utils.Pager{
-			Page:     page,
-			PageSize: page_size,
-		},
-		Status:   1,
-		Count: true,
+		Page:     page,
+		PageSize: page_size,
+		Status:   &status,
+		Count:    true,
+		IsAdmin:  true,
 	}
-	list, count := c.Service.List(query)
-
-	c.SuccessJson(ctx, "success", gin.H{
-		"list":  list, 	//构造 JSON 的 map
-		"count": count, //显示总条数
-	})
-}
-
-// 获取详情
-func (c *ArticleController) Detail(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Query("id"))
-	
-	info, err := c.Service.GetById(id)
+	res, err := c.Service.List(query)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", info)
+	common.Success(ctx, res)
+}
+
+//获取详情
+func (c *ArticleController) Detail(ctx *gin.Context) {
+	id, _ := strconv.Atoi(ctx.Query("id"))
+
+	info, err := c.Service.GetById(id)
+	if err != nil {
+		common.HandleError(ctx, err)
+		return
+	}
+	common.Success(ctx, info)
 }
 
 // 保存
@@ -72,7 +76,7 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 	author := ctx.PostForm("author")
 
 	//组装实体
-	entity := models.Article{
+	data := models.Article{
 		Id:      id,
 		Catid:   catid,
 		Title:   title,
@@ -81,12 +85,12 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 		Author:  author,
 		Status:  int8(status),
 	}
-	err := c.Service.Save(entity, true)
-	if err != nil {
-		c.handleError(ctx, err)
+	if err := c.Service.Save(data, true); err != nil {
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+
+	common.Success(ctx, nil)
 }
 
 // 删除
@@ -95,10 +99,10 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 
 	err := c.Service.DeleteById(id, true)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }
 
 // 启用
@@ -107,10 +111,10 @@ func (c *ArticleController) Enable(ctx *gin.Context) {
 
 	err := c.Service.ChangeStatus(id, 1, true)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }
 
 // 禁用
@@ -119,8 +123,8 @@ func (c *ArticleController) Disable(ctx *gin.Context) {
 
 	err := c.Service.ChangeStatus(id, 0, true)
 	if err != nil {
-		c.handleError(ctx, err)
+		common.HandleError(ctx, err)
 		return
 	}
-	c.SuccessJson(ctx, "success", nil)
+	common.Success(ctx, nil)
 }

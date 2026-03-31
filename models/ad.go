@@ -1,10 +1,6 @@
 package models
 
 import (
-	"gin-synolux/dto"
-	"reflect"
-
-	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 )
 
@@ -27,86 +23,4 @@ type Ad struct {
 
 func (m *Ad) TableName() string {
 	return viper.GetString("db.prefix") + "ad"
-}
-
-// 获取全部列表
-func (m *Ad) All(query dto.AdQuery) (list []*Ad) {
-	qs := DB.Self.Model(new(Ad))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if query.Catid != 0 {
-		qs = qs.Where("catid = ?", query.Catid)
-	}
-	qs.Order("create_time desc").Find(&list)
-	return list
-}
-
-// 获取分页列表
-func (m *Ad) List(query dto.AdQuery) ([]*Ad, int64) {
-	qs := DB.Self.Model(new(Ad))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if query.Catid != 0 {
-		qs = qs.Where("catid = ?", query.Catid)
-	}
-	//总条数
-	var count int64
-	qs.Count(&count)
-	var list []*Ad
-	if count > 0 {
-		offset := (query.Page - 1) * query.PageSize
-		qs.Order("create_time desc").Limit(query.PageSize).Offset(offset).Find(&list)
-	}
-	if reflect.ValueOf(list).IsNil() {
-		list = make([]*Ad, 0) //赋值为空切片[]
-	}
-	return list, count
-}
-
-// 获取单条
-func (m *Ad) GetById(id int) (v *Ad, err error) {
-	v = &Ad{}
-	d := DB.Self.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	return v, nil
-}
-
-// 获取单条(支持事务)
-func (m *Ad) GetByIdTx(tx *gorm.DB, id int) (v *Ad, err error) {
-	v = &Ad{}
-	d := tx.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	return v, nil
-}
-
-// 单条添加(支持事务)
-func (m *Ad) Add(tx ...*gorm.DB) error {
-	db := DB.Self
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0] // 使用事务对象
-    }
-    return db.Create(m).Error
-}
-
-// 更新(支持事务)
-func (m *Ad) UpdateById(tx ...*gorm.DB) error {
-	db := DB.Self
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0] // 使用事务对象
-    }
-    return db.Save(m).Error
-}
-
-// 删除
-func (m *Ad) DeleteById(id int) error {
-	m.Id = id
-	return DB.Self.Delete(m).Error
 }

@@ -1,9 +1,6 @@
 package models
 
 import (
-	"gin-synolux/dto"
-	"reflect"
-
 	"github.com/spf13/viper"
 )
 
@@ -25,74 +22,4 @@ type Movie struct {
 
 func (m *Movie) TableName() string {
 	return viper.GetString("db.prefix") + "movie"
-}
-
-// 获取全部列表
-func (m *Movie) All(query dto.MovieQuery) (list []*Movie) {
-	qs := DB.Self.Model(new(Movie))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if len(query.Title) > 1 {
-		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
-	}
-	qs.Order("create_time desc").Find(&list)
-	return list
-}
-
-// 获取分页列表
-func (m *Movie) List(query dto.MovieQuery) ([]*Movie, int64) {
-	qs := DB.Self.Model(new(Movie))
-	qs = qs.Debug().Where("delete_time = ?", 0) //未删除
-	if !reflect.ValueOf(&query.Status).IsNil() {
-		qs = qs.Where("status = ?", query.Status)
-	}
-	if query.Title != "" {
-		qs = qs.Where("title LIKE ?", "%"+query.Title+"%")
-	}
-	
-	var list []*Movie
-	var count int64
-
-	if query.Count { //是否返回总条数
-		qs.Count(&count)
-	}
-	qs = qs.Order("create_time DESC")
-
-	if query.Page > 0 && query.PageSize > 0 {
-		offset := (query.Page - 1) * query.PageSize
-		qs = qs.Limit(query.PageSize).Offset(offset)
-	} else if query.Limit > 0 {
-		qs = qs.Limit(query.Limit)
-	}
-	qs.Find(&list)
-
-	return list, count
-}
-
-// 获取单条
-func (m *Movie) GetById(id int) (v *Movie, err error) {
-	v = &Movie{}
-	d := DB.Self.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	return v, nil
-}
-
-// 单条添加
-func (m *Movie) Movied() error {
-	return DB.Self.Create(&m).Error
-}
-
-// 更新
-func (m *Movie) UpdateById() error {
-	return DB.Self.Save(m).Error
-}
-
-// 删除
-func (m *Movie) DeleteById(id int) error {
-	m.Id = id
-	return DB.Self.Delete(m).Error
 }

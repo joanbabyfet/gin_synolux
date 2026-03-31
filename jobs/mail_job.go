@@ -4,7 +4,7 @@ package jobs
 import (
 	"bytes"
 	"encoding/gob"
-	"gin-synolux/utils"
+	"gin-synolux/common"
 
 	"github.com/lexkong/log"
 )
@@ -23,7 +23,7 @@ func (s *SubscribeMail) ActionMail(args interface{}) error {
 	decoder.Decode(&scb)
 
 	//发送
-	ok := utils.SendMail(scb.To, scb.Subject, scb.Body)
+	ok := common.SendMail(scb.To, scb.Subject, scb.Body)
 	if !ok {
 		log.Error("发送邮件"+scb.To+"失败", nil)
 	}

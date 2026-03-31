@@ -1,9 +1,6 @@
 package models
 
 import (
-	"gin-synolux/dto"
-	"reflect"
-
 	"github.com/spf13/viper"
 )
 
@@ -24,56 +21,4 @@ type Feedback struct {
 
 func (m *Feedback) TableName() string {
 	return viper.GetString("db.prefix") + "feedback"
-}
-
-// 获取全部列表
-func (m *Feedback) All(query dto.FeedbackQuery) (list []*Feedback) {
-	qs := DB.Self.Model(new(Feedback))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	qs.Order("create_time desc").Find(&list)
-	return list
-}
-
-// 获取分页列表
-func (m *Feedback) PageList(query dto.FeedbackQuery) ([]*Feedback, int64) {
-	qs := DB.Self.Model(new(Feedback))
-	qs = qs.Where("delete_time = ?", 0) //未删除
-	//总条数
-	var count int64
-	qs.Count(&count)
-	var list []*Feedback
-	if count > 0 {
-		offset := (query.Page - 1) * query.PageSize
-		qs.Order("create_time desc").Limit(query.PageSize).Offset(offset).Find(&list)
-	}
-	if reflect.ValueOf(list).IsNil() {
-		list = make([]*Feedback, 0) //赋值为空切片[]
-	}
-	return list, count
-}
-
-// 获取单条
-func (m *Feedback) GetById(id int) (v *Feedback, err error) {
-	v = &Feedback{}
-	d := DB.Self.Where("delete_time = ?", 0).Where("id = ?", id).First(&v)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	return v, nil
-}
-
-// 单条添加
-func (m *Feedback) Add() error {
-	return DB.Self.Create(&m).Error
-}
-
-// 更新
-func (m *Feedback) UpdateById() error {
-	return DB.Self.Save(m).Error
-}
-
-// 删除
-func (m *Feedback) DeleteById(id int) error {
-	m.Id = id
-	return DB.Self.Delete(m).Error
 }

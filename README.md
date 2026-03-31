@@ -13,6 +13,7 @@
 * i18n多语言功能
 * crontab定时任务功能
 * WebSocket服务端
+* service + repository 分层结构
 
 ## Usage
 ```
