@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"gin-synolux/common"
 	admin "gin-synolux/controllers/admin"
 	controllers "gin-synolux/controllers/api"
 	"gin-synolux/db"
@@ -22,12 +23,14 @@ func Init() *gin.Engine {
 	movieService := service.NewMovieService(db.DB.Self)
 	userService := service.NewUserService(db.DB.Self)
 	uploadService := service.NewUploadService(db.DB.Self)
+	adminService := service.NewAdminService(db.DB.Self)
 
 	//后台
 	adminAd := admin.NewAdController(adService)
 	adminArticle := admin.NewArticleController(articleService)
 	adminMovie := admin.NewMovieController(movieService)
 	adminUpload := admin.NewUploadController(uploadService)
+	adminAdmin := admin.NewAdminController(adminService)
 
 	//api
 	apiArticle := controllers.NewArticleController(articleService)
@@ -50,6 +53,11 @@ func Init() *gin.Engine {
 		// 公共接口
 		api.GET("/captcha", new(controllers.CommonController).Captcha)
 		api.GET("/ping", new(controllers.CommonController).Ping)
+		api.POST("/upload", apiUpload.Upload)
+		api.GET("/download", apiUpload.Download)
+		api.POST("/feedback", apiFeedback.Save)
+		api.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
+		api.GET("/ip", new(controllers.CommonController).Ip)
 
 		//用户
 		api.POST("/login", apiUser.Login)
@@ -65,64 +73,72 @@ func Init() *gin.Engine {
 	// 前台登录用户
 	// =========================
 	apiAuth := router.Group("/api/v1")
-	apiAuth.Use(middleware.AuthMiddleware())
+	apiAuth.Use(middleware.AuthMiddleware(common.RoleUser))
 	{
 		//用户
 		apiAuth.POST("/logout", apiUser.Logout)
 		apiAuth.GET("/get_userinfo", apiUser.GetUserInfo) //获取用户信息
 		apiAuth.POST("/profile", apiUser.Profile)
 		apiAuth.POST("/set_password", apiUser.SetPassword)
+	}
 
-		apiAuth.POST("/upload", apiUpload.Upload)
-		apiAuth.GET("/download", apiUpload.Download)
-
-		apiAuth.POST("/feedback", apiFeedback.Save)
-
-		apiAuth.GET("/chat_gpt", new(controllers.CommonController).ChatGPT)
-		apiAuth.GET("/ip", new(controllers.CommonController).Ip)
+	// =========================
+	// 后台 API
+	// =========================
+	adminAPI := router.Group("/admin_api/v1")
+	{
+		adminAPI.POST("/login", adminAdmin.Login)
+		adminAPI.POST("/register", adminAdmin.Register)
+		adminAPI.GET("/captcha", new(admin.CommonController).Captcha)
 	}
 
 	// =========================
 	// 后台 API（必须登录）
 	// =========================
-	adminAPI := router.Group("/admin_api/v1")
-	adminAPI.Use(middleware.AuthMiddleware())
+	adminAPIAuth := router.Group("/admin_api/v1")
+	adminAPIAuth.Use(middleware.AuthMiddleware(common.RoleAdmin))
 	{
 		// 文章管理（完整权限）
-		adminAPI.GET("/article", adminArticle.Index)
-		adminAPI.GET("/article/detail", adminArticle.Detail)
-		adminAPI.POST("/article/save", adminArticle.Save)
-		adminAPI.POST("/article/delete", adminArticle.Delete)
-		adminAPI.POST("/article/enable", adminArticle.Enable)
-		adminAPI.POST("/article/disable", adminArticle.Disable)
+		adminAPIAuth.GET("/article", adminArticle.Index)
+		adminAPIAuth.GET("/article/detail", adminArticle.Detail)
+		adminAPIAuth.POST("/article/save", adminArticle.Save)
+		adminAPIAuth.POST("/article/delete", adminArticle.Delete)
+		adminAPIAuth.POST("/article/enable", adminArticle.Enable)
+		adminAPIAuth.POST("/article/disable", adminArticle.Disable)
 
 		// 广告管理（完整权限）
-		adminAPI.GET("/ad", adminAd.Index)
-		adminAPI.GET("/ad/detail", adminAd.Detail)
-		adminAPI.POST("/ad/save", adminAd.Save)
-		adminAPI.POST("/ad/delete", adminAd.Delete)
-		adminAPI.POST("/ad/enable", adminAd.Enable)
-		adminAPI.POST("/ad/disable", adminAd.Disable)
+		adminAPIAuth.GET("/ad", adminAd.Index)
+		adminAPIAuth.GET("/ad/detail", adminAd.Detail)
+		adminAPIAuth.POST("/ad/save", adminAd.Save)
+		adminAPIAuth.POST("/ad/delete", adminAd.Delete)
+		adminAPIAuth.POST("/ad/enable", adminAd.Enable)
+		adminAPIAuth.POST("/ad/disable", adminAd.Disable)
 		
 		//视频管理
-		adminAPI.GET("/movie", adminMovie.Index)
-		adminAPI.GET("/movie/detail", adminMovie.Detail)
-		adminAPI.POST("/movie/save", adminMovie.Save)
-		adminAPI.POST("/movie/delete", adminMovie.Delete)
-		adminAPI.POST("/movie/enable", adminMovie.Enable)
-		adminAPI.POST("/movie/disable", adminMovie.Disable)
+		adminAPIAuth.GET("/movie", adminMovie.Index)
+		adminAPIAuth.GET("/movie/detail", adminMovie.Detail)
+		adminAPIAuth.POST("/movie/save", adminMovie.Save)
+		adminAPIAuth.POST("/movie/delete", adminMovie.Delete)
+		adminAPIAuth.POST("/movie/enable", adminMovie.Enable)
+		adminAPIAuth.POST("/movie/disable", adminMovie.Disable)
+		
+		//用户
+		adminAPIAuth.POST("/logout", adminAdmin.Logout)
+		adminAPIAuth.GET("/get_userinfo", adminAdmin.GetUserInfo) //获取用户信息
+		adminAPIAuth.POST("/profile", adminAdmin.Profile)
+		adminAPIAuth.POST("/set_password", adminAdmin.SetPassword)
 
 		// 其他
-		adminAPI.POST("/upload", adminUpload.Upload)
-		adminAPI.GET("/download", adminUpload.Download)
+		adminAPIAuth.POST("/upload", adminUpload.Upload)
+		adminAPIAuth.GET("/download", adminUpload.Download)
 
-		adminAPI.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
-		adminAPI.GET("/ip", new(admin.CommonController).Ip)
-		adminAPI.GET("/ping", new(admin.CommonController).Ping)
+		adminAPIAuth.GET("/chat_gpt", new(admin.CommonController).ChatGPT)
+		adminAPIAuth.GET("/ip", new(admin.CommonController).Ip)
+		adminAPIAuth.GET("/ping", new(admin.CommonController).Ping)
 
-		adminAPI.GET("/test", new(admin.TestController).Test)
-		adminAPI.GET("/queue", new(admin.TestController).Queue)
-		adminAPI.POST("/send_msg", new(admin.CommonController).SendMsg)
+		adminAPIAuth.GET("/test", new(admin.TestController).Test)
+		adminAPIAuth.GET("/queue", new(admin.TestController).Queue)
+		adminAPIAuth.POST("/send_msg", new(admin.CommonController).SendMsg)
 	}
 
 	return router

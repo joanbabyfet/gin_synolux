@@ -20,7 +20,7 @@ type UserLoginReq struct {
 	LoginIp  string `json:"login_ip" description:"最后登录IP"`
 }
 
-type PasswordReq struct {
+type UserPasswordReq struct {
 	Password    string `json:"password"`     //原始密码
 	NewPassword string `json:"new_password"` //新密码
 	RePassword  string `json:"re_password"`  //确认密码

@@ -4,7 +4,7 @@ gormlog: false # 打印所有sql
 # 最大上传大小单位MB
 upload_dir: uploads
 upload_max_size: 5
-file_url: https://tststatic.synolux.local
+file_url: https://static.synolux.local
 # 是否启用验证码
 enable_captcha: false
 

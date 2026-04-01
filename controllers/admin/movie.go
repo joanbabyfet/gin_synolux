@@ -92,7 +92,13 @@ func (c *MovieController) Save(ctx *gin.Context) {
 func (c *MovieController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.DeleteById(id, false)
+	req := dto.MovieDeleteReq{
+		ID:     id,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.DeleteById(req, false)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -104,7 +110,14 @@ func (c *MovieController) Delete(ctx *gin.Context) {
 func (c *MovieController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 1, false)
+	req := dto.MovieChangeStatusReq{
+		ID:     id,
+		Status: 1,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, false)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -116,7 +129,14 @@ func (c *MovieController) Enable(ctx *gin.Context) {
 func (c *MovieController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 0, false)
+	req := dto.MovieChangeStatusReq{
+		ID:     id,
+		Status: 1,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, false)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return

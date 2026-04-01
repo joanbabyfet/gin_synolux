@@ -15,6 +15,20 @@ type AdQuery struct {
 }
 
 // ==================== Response ====================
+type AdDeleteReq struct {
+	ID     int
+	UserID string
+	Role   string
+}
+
+type AdChangeStatusReq struct {
+    ID      int 
+    Status  int 
+	UserID string
+	Role   string
+}
+
+// ==================== Response ====================
 type AdListResp struct {
 	List  interface{} `json:"list"`
 	Count int64       `json:"count"`

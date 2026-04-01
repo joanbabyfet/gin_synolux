@@ -12,6 +12,20 @@ type MovieQuery struct {
 }
 
 // ==================== Response ====================
+type MovieDeleteReq struct {
+	ID     int
+	UserID string
+	Role   string
+}
+
+type MovieChangeStatusReq struct {
+    ID      int 
+    Status  int 
+	UserID string
+	Role   string
+}
+
+// ==================== Response ====================
 type MovieListResp struct {
 	List  interface{} `json:"list"`
 	Count int64       `json:"count"`

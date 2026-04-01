@@ -11,6 +11,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
@@ -109,4 +110,14 @@ func ByteEncoder(s interface{}) []byte {
 	}
 
 	return enc_result.Bytes()
+}
+
+//获取用户id
+func GetUserID(c *gin.Context) string { 
+	return c.GetString("userID") 
+} 
+
+//获取用户角色
+func GetRole(c *gin.Context) string { 
+	return c.GetString("role") 
 }

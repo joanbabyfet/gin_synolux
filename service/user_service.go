@@ -81,7 +81,7 @@ func (s *UserService) Login(username, password, key, code, ip string) (*dto.User
 	}
 
 	// 用 pkg/jwt
-	token, err := common.GenerateToken(user, user.Id, 0)
+	token, err := common.GenerateToken(user.Id, common.RoleUser, 0)
 	if err != nil {
 		log.Error("生成token失败", err)
 		return nil, common.NewError(-6, "生成token失败")
@@ -104,7 +104,7 @@ func (s *UserService) Login(username, password, key, code, ip string) (*dto.User
 func (s *UserService) SetPassword(password, newPassword, rePassword, uid string) error {
 
 	// ===== DTO 参数承载 =====
-	req := dto.PasswordReq{
+	req := dto.UserPasswordReq{
 		Password:    strings.TrimSpace(password),
 		NewPassword: strings.TrimSpace(newPassword),
 		RePassword:  strings.TrimSpace(rePassword),
@@ -257,7 +257,7 @@ func (s *UserService) Save(data models.User) error {
 			"avatar":      data.Avatar,
 			"sex":         data.Sex,
 			"update_time": now,
-			"update_user": "1",
+			"update_user": data.UpdateUser,
 		}
 
 		// 👉 密码非空才更新
@@ -299,7 +299,6 @@ func (s *UserService) Save(data models.User) error {
 		data.Password = hash
 		data.Language = "cn"
 		data.Status = 1
-		data.CreateUser = "1"
 		data.CreateTime = now
 
 		if err := repo.Create(&data); err != nil {

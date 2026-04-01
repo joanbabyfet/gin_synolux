@@ -82,6 +82,8 @@ func (c *AdController) Save(ctx *gin.Context) {
 		Url: 	 url,
 		Sort: 	 int16(sort),
 		Status:  int8(status),
+		CreateUser: common.GetUserID(ctx),
+		UpdateUser: common.GetUserID(ctx),
 	}
 	if err := c.Service.Save(data, true); err != nil {
 		common.HandleError(ctx, err)
@@ -94,8 +96,14 @@ func (c *AdController) Save(ctx *gin.Context) {
 // 删除
 func (c *AdController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	
+	req := dto.AdDeleteReq{
+		ID:     id,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
 
-	err := c.Service.DeleteById(id, true)
+	err := c.Service.DeleteById(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -107,7 +115,14 @@ func (c *AdController) Delete(ctx *gin.Context) {
 func (c *AdController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 1, true)
+	req := dto.AdChangeStatusReq{
+		ID:     id,
+		Status: 1,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -119,7 +134,14 @@ func (c *AdController) Enable(ctx *gin.Context) {
 func (c *AdController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 0, true)
+	req := dto.AdChangeStatusReq{
+		ID:     id,
+		Status: 0,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"gin-synolux/models"
 	"io"
 	"time"
 
@@ -17,6 +16,8 @@ const (
 	SecretKEY              string = "JWT-Secret-Key"
 	DEFAULT_EXPIRE_SECONDS int    = 3600 // 默认10分钟, 单位秒
 	PasswordHashBytes             = 16
+	RoleUser  string 			  = "user"		//用户
+    RoleAdmin string 			  = "admin"		//管理员
 )
 
 // MyCustomClaims
@@ -24,6 +25,7 @@ const (
 // 此结构是有效负载
 type MyCustomClaims struct {
 	UserID string `json:"userID"`
+	Role   string   `json:"role"`   //区分用户类型
 	jwt.StandardClaims
 }
 
@@ -33,6 +35,7 @@ type MyCustomClaims struct {
 type JwtPayload struct {
 	Username  string `json:"username"`
 	UserID    string `json:"userID"`
+	Role   	  string `json:"role"`
 	IssuedAt  int64  `json:"iat"` // 发布日期
 	ExpiresAt int64  `json:"exp"` // 过期时间
 }
@@ -45,7 +48,7 @@ type JwtPayload struct {
 // @Param expiredSeconds 	int 					"过期时间"
 // @return    tokenString   string         	"编码后的token"
 // @return    err   		error         	"错误信息"
-func GenerateToken(info *models.User, userID string, expiredSeconds int) (tokenString string, err error) {
+func GenerateToken(userID string, role string, expiredSeconds int) (tokenString string, err error) {
 	// 如果没设置过期时间，默认为 DEFAULT_EXPIRE_SECONDS 600s
 	if expiredSeconds == 0 {
 		expiredSeconds = DEFAULT_EXPIRE_SECONDS
@@ -57,11 +60,11 @@ func GenerateToken(info *models.User, userID string, expiredSeconds int) (tokenS
 	expireAt := time.Now().Add(time.Second * time.Duration(expiredSeconds)).Unix()
 	log.Info("Token 将到期于：" + time.Unix(expireAt, 0).String())
 
-	user := *info
 	claims := MyCustomClaims{
 		userID,
+		role,
 		jwt.StandardClaims{
-			Issuer:    user.Username,     // 发行者
+			Issuer:    "your-system",     // 发行者
 			IssuedAt:  time.Now().Unix(), // 发布时间
 			ExpiresAt: expireAt,          // 过期时间
 		},
@@ -103,6 +106,7 @@ func ValidateToken(tokenString string) (*JwtPayload, error) {
 		return &JwtPayload{
 			Username:  claims.StandardClaims.Issuer, // 用户名：发行者
 			UserID:    claims.UserID,
+			Role:	   claims.Role,
 			IssuedAt:  claims.StandardClaims.IssuedAt,
 			ExpiresAt: claims.StandardClaims.ExpiresAt,
 		}, nil
@@ -135,6 +139,7 @@ func RefreshToken(tokenString string) (newTokenString string, err error) {
 	expireAt := time.Now().Add(time.Second * time.Duration(DEFAULT_EXPIRE_SECONDS)).Unix() //new expired
 	newClaims := MyCustomClaims{
 		claims.UserID,
+		claims.Role,
 		jwt.StandardClaims{
 			Issuer:    claims.StandardClaims.Issuer, //name of token issue
 			IssuedAt:  time.Now().Unix(),            //time of token issue

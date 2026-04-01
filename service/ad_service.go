@@ -140,7 +140,7 @@ func (s *AdService) Save(data models.Ad, isAdmin bool) error {
 			"url":         data.Url,
 			"sort":        data.Sort,
 			"status":      data.Status,
-			"update_user": "1",
+			"update_user": data.UpdateUser,
 			"update_time": now,
 		}
 
@@ -152,7 +152,6 @@ func (s *AdService) Save(data models.Ad, isAdmin bool) error {
 		}
 	} else {
 		data.Status = 1
-		data.CreateUser = "1"
 		data.CreateTime = common.Timestamp()
 
 		// ===== 创建（走 repo）=====
@@ -188,9 +187,9 @@ func (s *AdService) Save(data models.Ad, isAdmin bool) error {
 }
 
 // 软删除
-func (s *AdService) DeleteById(id int, isAdmin bool) error {
+func (s *AdService) DeleteById(req dto.AdDeleteReq, isAdmin bool) error {
 	// 参数验证
-	entity := models.Ad{Id: id}
+	entity := models.Ad{Id: req.ID}
 	rules := govalidator.MapData{
 		"id": []string{"required"},
 	}
@@ -213,10 +212,10 @@ func (s *AdService) DeleteById(id int, isAdmin bool) error {
 	// 用事务 repo
 	repo := s.repo.WithTx(tx)
 
-	exists, err := repo.ExistsByID(id)
+	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询广告失败 id="+strconv.Itoa(id), err)
+		log.Error("查询广告失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -227,14 +226,14 @@ func (s *AdService) DeleteById(id int, isAdmin bool) error {
 	//软删除
 	now := common.Timestamp()
 	data := map[string]interface{}{
-		"delete_user": "1",
+		"delete_user": req.UserID,
 		"delete_time": now,
 	}
 
 	//更新（删除）
-	if err := repo.Update(id, data); err != nil {
+	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("广告删除失败 id="+strconv.Itoa(id), err)
+		log.Error("广告删除失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "删除失败")
 	}
 
@@ -245,23 +244,23 @@ func (s *AdService) DeleteById(id int, isAdmin bool) error {
 	}
 
 	//删除缓存（事务成功后）
-	cacheKey := fmt.Sprintf("ad:detail:%d", id)
+	cacheKey := fmt.Sprintf("ad:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
 		log.Error("删除缓存失败", err)
 	}
 
 	//日志
 	if isAdmin {
-		log.Infof("删除广告 id=%d", id)
+		log.Infof("删除广告 id=%d", req.ID)
 	}
 
 	return nil
 }
 
 // 变更状态
-func (s *AdService) ChangeStatus(id int, status int, isAdmin bool) error {
+func (s *AdService) ChangeStatus(req dto.AdChangeStatusReq, isAdmin bool) error {
 	// 参数验证
-	entity := models.Ad{Id: id}
+	entity := models.Ad{Id: req.ID}
 	rules := govalidator.MapData{
 		"id": []string{"required"},
 	}
@@ -285,10 +284,10 @@ func (s *AdService) ChangeStatus(id int, status int, isAdmin bool) error {
 	repo := s.repo.WithTx(tx)
 
 	//检测数据是否存在
-	exists, err := repo.ExistsByID(id)
+	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询广告失败 id="+strconv.Itoa(id), err)
+		log.Error("查询广告失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -298,14 +297,14 @@ func (s *AdService) ChangeStatus(id int, status int, isAdmin bool) error {
 
 	now := common.Timestamp()
 	data := map[string]interface{}{
-		"status":      int8(status),
-		"update_user": "1",
+		"status":      int8(req.Status),
+		"update_user": req.UserID,
 		"update_time": now,
 	}
 
-	if err := repo.Update(id, data); err != nil {
+	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("修改广告状态失败 id="+strconv.Itoa(id), err)
+		log.Error("修改广告状态失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "状态修改失败")
 	}
 
@@ -315,14 +314,14 @@ func (s *AdService) ChangeStatus(id int, status int, isAdmin bool) error {
 		return common.NewError(-4, err.Error())
 	}
 
-	cacheKey := fmt.Sprintf("ad:detail:%d", id)
+	cacheKey := fmt.Sprintf("ad:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
 		log.Error("删除缓存失败", err)
 	}
 
 	// 后台操作日志
 	if isAdmin {
-		log.Infof("修改广告状态 id=%d status=%d", id, status)
+		log.Infof("修改广告状态 id=%d status=%d", req.ID, req.Status)
 	}
 
 	return nil

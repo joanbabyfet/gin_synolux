@@ -126,6 +126,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 		Avatar:    avatar,
 		Sex:       int8(sex),
 		RegIp:     c.getClientIp(ctx),
+		CreateUser: common.GetUserID(ctx),
 	}
 	
 	// 构造实体（建议后面可换 DTO）
@@ -164,6 +165,7 @@ func (c *UserController) Profile(ctx *gin.Context) {
 		Phone:     phone,
 		Avatar:    avatar,
 		Sex:       int8(sex),
+		UpdateUser: common.GetUserID(ctx),
 	}
 
 	//保存

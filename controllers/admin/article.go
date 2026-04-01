@@ -84,6 +84,8 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 		Content: content,
 		Author:  author,
 		Status:  int8(status),
+		CreateUser: common.GetUserID(ctx),
+		UpdateUser: common.GetUserID(ctx),
 	}
 	if err := c.Service.Save(data, true); err != nil {
 		common.HandleError(ctx, err)
@@ -97,7 +99,13 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 func (c *ArticleController) Delete(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.DeleteById(id, true)
+	req := dto.ArticleDeleteReq{
+		ID:     id,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.DeleteById(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -109,7 +117,14 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 func (c *ArticleController) Enable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 1, true)
+	req := dto.ArticleChangeStatusReq{
+		ID:     id,
+		Status: 1,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -121,7 +136,14 @@ func (c *ArticleController) Enable(ctx *gin.Context) {
 func (c *ArticleController) Disable(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.PostForm("id"))
 
-	err := c.Service.ChangeStatus(id, 0, true)
+	req := dto.ArticleChangeStatusReq{
+		ID:     id,
+		Status: 0,
+		UserID: common.GetUserID(ctx),
+		Role:   common.GetRole(ctx),
+	}
+
+	err := c.Service.ChangeStatus(req, true)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return

@@ -56,7 +56,7 @@ func (s *FeedbackService) Save(data models.Feedback, isAdmin bool) (error) {
 	repo := s.repo.WithTx(tx)
 
 	now := common.Timestamp()
-	data.CreateUser = "1"
+	data.CreateUser = "0"
 	data.CreateTime = now
 
 	// 统一走 repo

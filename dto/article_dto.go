@@ -14,6 +14,20 @@ type ArticleQuery struct {
 }
 
 // ==================== Response ====================
+type ArticleDeleteReq struct {
+	ID     int
+	UserID string
+	Role   string
+}
+
+type ArticleChangeStatusReq struct {
+    ID      int 
+    Status  int 
+	UserID string
+	Role   string
+}
+
+// ==================== Response ====================
 type ArticleListResp struct {
 	List  interface{} `json:"list"`
 	Count int64       `json:"count"`
