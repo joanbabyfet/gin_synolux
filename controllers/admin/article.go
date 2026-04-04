@@ -3,9 +3,7 @@ package admin
 import (
 	"gin-synolux/common"
 	"gin-synolux/dto"
-	"gin-synolux/models"
 	"gin-synolux/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,73 +19,55 @@ func NewArticleController(s *service.ArticleService) *ArticleController {
 
 // 获取列表
 func (c *ArticleController) Index(ctx *gin.Context) {
-	catid, _ := strconv.Atoi(ctx.DefaultQuery("catid", "0"))
-	title := ctx.Query("title")
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
-	status := int8(1)
+	var req dto.ArticleQuery
 
-	if page < 1 {
-		page = 1
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	//补充上下文
+	req.Count = true
 
-	if page_size < 1 {
-		page_size = 10
-	}
-	
-	//获取文䓬列表
-	query := dto.ArticleQuery{
-		Title:    title,
-		Catid:    catid,
-		Page:     page,
-		PageSize: page_size,
-		Status:   &status,
-		Count:    true,
-		IsAdmin:  true,
-	}
-	res, err := c.Service.List(query)
+	res, err := c.Service.List(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, res)
 }
 
 //获取详情
 func (c *ArticleController) Detail(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Query("id"))
+	var req dto.ArticleDetailReq
 
-	info, err := c.Service.GetById(id)
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	info, err := c.Service.GetById(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, info)
 }
 
 // 保存
 func (c *ArticleController) Save(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
-	catid, _ := strconv.Atoi(ctx.PostForm("catid"))
-	status, _ := strconv.Atoi(ctx.PostForm("status"))
-	title := ctx.PostForm("title")
-	info := ctx.PostForm("info")
-	content := ctx.PostForm("content")
-	author := ctx.PostForm("author")
+	var req dto.ArticleSaveReq
 
-	//组装实体
-	data := models.Article{
-		Id:      id,
-		Catid:   catid,
-		Title:   title,
-		Info:    info,
-		Content: content,
-		Author:  author,
-		Status:  int8(status),
-		CreateUser: common.GetUserID(ctx),
-		UpdateUser: common.GetUserID(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
-	if err := c.Service.Save(data, true); err != nil {
+
+	req.CreateUser = common.GetUserID(ctx)
+	req.UpdateUser = common.GetUserID(ctx)
+
+	if err := c.Service.Save(&req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
@@ -97,56 +77,60 @@ func (c *ArticleController) Save(ctx *gin.Context) {
 
 // 删除
 func (c *ArticleController) Delete(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.ArticleDeleteReq
 
-	req := dto.ArticleDeleteReq{
-		ID:     id,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
 
-	err := c.Service.DeleteById(req, true)
-	if err != nil {
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
+
+	if err := c.Service.DeleteById(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
 // 启用
 func (c *ArticleController) Enable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.ArticleChangeStatusReq
 
-	req := dto.ArticleChangeStatusReq{
-		ID:     id,
-		Status: 1,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	req.Status = 1
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
-	err := c.Service.ChangeStatus(req, true)
-	if err != nil {
+	if err := c.Service.ChangeStatus(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
 // 禁用
 func (c *ArticleController) Disable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.ArticleChangeStatusReq
 
-	req := dto.ArticleChangeStatusReq{
-		ID:     id,
-		Status: 0,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	req.Status = 0
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
-	err := c.Service.ChangeStatus(req, true)
-	if err != nil {
+	if err := c.Service.ChangeStatus(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }

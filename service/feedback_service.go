@@ -3,12 +3,12 @@ package service
 import (
 	"gin-synolux/common"
 	"gin-synolux/db"
+	"gin-synolux/dto"
 	"gin-synolux/models"
 	"gin-synolux/repository"
 
 	"github.com/jinzhu/gorm"
 	"github.com/lexkong/log"
-	"github.com/thedevsaddam/govalidator"
 )
 
 type FeedbackService struct {
@@ -26,25 +26,8 @@ func NewFeedbackService(db *gorm.DB) *FeedbackService {
 }
 
 // 保存
-func (s *FeedbackService) Save(data models.Feedback, isAdmin bool) (error) {
-	// 参数校验
-	rules := govalidator.MapData{
-		"name":    []string{"required"},
-		"mobile":  []string{"required"},
-		"email":   []string{"required"},
-		"content": []string{"required"},
-	}
-	messages := govalidator.MapData{
-		"name":    []string{"required:name 不能为空"},
-		"mobile":  []string{"required:mobile 不能为空"},
-		"email":   []string{"required:email 不能为空"},
-		"content": []string{"required:content 不能为空"},
-	}
-
-	if err := common.ValidateStruct(&data, rules, messages); err != nil {
-		return common.NewError(-1, err.Error())
-	}
-
+func (s *FeedbackService) Save(req *dto.FeedbackSaveReq, isAdmin bool) (error) {	
+	//开启事务
 	tx := db.DB.Self.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -53,11 +36,18 @@ func (s *FeedbackService) Save(data models.Feedback, isAdmin bool) (error) {
 		}
 	}()
 
+	// 用事务 repo
 	repo := s.repo.WithTx(tx)
-
 	now := common.Timestamp()
-	data.CreateUser = "0"
-	data.CreateTime = now
+
+	data := models.Feedback{
+		Name:    req.Name,
+		Mobile:  req.Mobile,
+		Email:   req.Email,
+		Content: req.Content,
+		CreateUser: req.CreateUser,
+		CreateTime: now,
+	}
 
 	// 统一走 repo
 	if err := repo.Create(&data); err != nil {

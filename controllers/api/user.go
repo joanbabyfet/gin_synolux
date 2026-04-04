@@ -2,9 +2,8 @@ package controllers
 
 import (
 	"gin-synolux/common"
-	"gin-synolux/models"
+	"gin-synolux/dto"
 	"gin-synolux/service"
-	"strconv"
 	"strings"
 	"time"
 
@@ -22,17 +21,21 @@ func NewUserController(s *service.UserService) *UserController {
 
 // 登录
 func (c *UserController) Login(ctx *gin.Context) {
-	username := ctx.PostForm("username") //帐号
-	password := ctx.PostForm("password") //密码
-	code := ctx.PostForm("code")         //验证码
-	key := ctx.PostForm("key")           //验证码key
-	ip := c.getClientIp(ctx)
+	var req dto.UserLoginReq
 
-	info, err := c.Service.Login(username, password, key, code, ip)
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	req.Ip = c.getClientIp(ctx)
+
+	info, err := c.Service.Login(&req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, info)
 }
 
@@ -62,22 +65,26 @@ func (c *UserController) Logout(ctx *gin.Context) {
 
 // 修改密码
 func (c *UserController) SetPassword(ctx *gin.Context) {
-	password := ctx.PostForm("password")         //原始密码
-	new_password := ctx.PostForm("new_password") //新密码
-	re_password := ctx.PostForm("re_password")   //确认密码
+	var req dto.UserSetPasswordReq
 
-	uid := ctx.GetString("userID")
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	uid := common.GetUserID(ctx)
 	if uid == "" {
 		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
-	//修改密码
-	err := c.Service.SetPassword(password, new_password, re_password, uid)
-	if err != nil {
+	req.UID = uid
+
+	if err := c.Service.SetPassword(&req); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
@@ -89,90 +96,68 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 		return
 	}
 
+	var req dto.UserDetailReq
+	req.UID = uid
+
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
 	//获取用户信息
-	info, err := c.Service.GetById(uid)
+	info, err := c.Service.GetById(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
 	common.Success(ctx, info)
-
 }
 
 // 注册
 func (c *UserController) Register(ctx *gin.Context) {
-	username := ctx.PostForm("username")
-	password := ctx.PostForm("password")
-	realname := ctx.PostForm("realname")
-	email := ctx.PostForm("email")
-	phone_code := ctx.PostForm("phone_code")
-	phone := ctx.PostForm("phone")
-	avatar := ctx.PostForm("avatar")
+	var req dto.UserRegisterReq
 
-	sexVal := ctx.PostForm("sex")
-	sex, err := strconv.Atoi(sexVal)
-	if err != nil {
-		sex = 0 // 默认值
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
 
-	// 构造实体（建议后面可换 DTO）
-	data := models.User{
-		Username:  username,
-		Password:  password,
-		Realname:  realname,
-		Email:     email,
-		PhoneCode: phone_code,
-		Phone:     phone,
-		Avatar:    avatar,
-		Sex:       int8(sex),
-		RegIp:     c.getClientIp(ctx),
-		CreateUser: common.GetUserID(ctx),
-	}
-	
-	// 构造实体（建议后面可换 DTO）
-	err = c.Service.Save(data)
-	if err != nil {
+	req.RegIp = c.getClientIp(ctx)
+
+	if err := c.Service.Register(req, false); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
 // 修改用户信息
 func (c *UserController) Profile(ctx *gin.Context) {
-	realname := ctx.PostForm("realname")
-	email := ctx.PostForm("email")
-	phone_code := ctx.PostForm("phone_code")
-	phone := ctx.PostForm("phone")
-	avatar := ctx.PostForm("avatar")
-	uid := ctx.GetString("userID")
+	var req dto.UserProfileReq
+
+	// 统一绑定（支持 form / json）
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	// 登录校验
+	uid := common.GetUserID(ctx)
 	if uid == "" {
 		common.Fail(ctx, -1, "未登录", nil)
 		return
 	}
 
-	sexVal := ctx.PostForm("sex")
-	sex, err := strconv.Atoi(sexVal)
-	if err != nil {
-		sex = 0
-	}
+	// 注入JWT信息（非常关键）
+	req.ID = uid
 
-	data := models.User{
-		Id:        uid,
-		Realname:  realname,
-		Email:     email,
-		PhoneCode: phone_code,
-		Phone:     phone,
-		Avatar:    avatar,
-		Sex:       int8(sex),
-		UpdateUser: common.GetUserID(ctx),
-	}
-
-	//保存
-	err = c.Service.Save(data)
+	// 调用 service
+	err := c.Service.UpdateProfile(req, false)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }

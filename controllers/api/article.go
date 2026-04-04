@@ -70,12 +70,18 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 
 // 获取详情
 func (c *ArticleController) Detail(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Query("id"))
+	var req dto.ArticleDetailReq
 
-	info, err := c.Service.GetById(id)
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	info, err := c.Service.GetById(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, info)
 }

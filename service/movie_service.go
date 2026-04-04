@@ -13,7 +13,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/lexkong/log"
-	"github.com/thedevsaddam/govalidator"
 )
 
 type MovieService struct {
@@ -44,21 +43,9 @@ func (s *MovieService) List(query dto.MovieQuery) (*dto.MovieListResp, error) {
 }
 
 // 获取详情
-func (s *MovieService) GetById(id int) (*models.Movie, error) {
-	// 参数验证
-	entity := models.Movie{Id: id}
-	rules := govalidator.MapData{
-		"id": []string{"required"},
-	}
-	messages := govalidator.MapData{
-		"id": []string{"required:id 不能为空"},
-	}
-	if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-		return nil, common.NewError(-1, err.Error())
-	}
-
+func (s *MovieService) GetById(req dto.MovieDetailReq) (*models.Movie, error) {
 	//先查缓存
-	cache_key := fmt.Sprintf("movie:detail:%d", id)
+	cache_key := fmt.Sprintf("movie:detail:%d", req.ID)
 	val, err := common.Redis.Get(cache_key).Result()
 	if err == nil {
 		var info models.Movie
@@ -68,9 +55,9 @@ func (s *MovieService) GetById(id int) (*models.Movie, error) {
 	}
 
 	//缓存未命中，查库
-	info, err := s.repo.GetByID(id)
+	info, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		log.Error("视频不存在 "+strconv.Itoa(id), err)
+		log.Error("视频不存在 "+strconv.Itoa(req.ID), err)
 		return nil, common.NewError(-1, "视频不存在")
 	}
 
@@ -84,25 +71,8 @@ func (s *MovieService) GetById(id int) (*models.Movie, error) {
 }
 
 // 保存
-func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
-	rules := govalidator.MapData{
-		"title": []string{"required"},
-	}
-	messages := govalidator.MapData{
-		"title": []string{"required:title 不能为空"},
-	}
-
-	isUpdate := data.Id > 0
-
-	// 更新操作必须验证 ID
-	if isUpdate {
-		rules["id"] = []string{"required"}
-		messages["id"] = []string{"required:id 不能为空"}
-	}
-
-	if err := common.ValidateStruct(&data, rules, messages); err != nil {
-		return common.NewError(-1, err.Error())
-	}
+func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
+	isUpdate := req.ID > 0
 
 	//开启事务
 	tx := db.DB.Self.Begin()
@@ -121,10 +91,10 @@ func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
 
 	if isUpdate {
 		//检测数据是否存在
-		exists, err := repo.ExistsByID(data.Id)
+		exists, err := repo.ExistsByID(req.ID)
 		if err != nil {
 			tx.Rollback()
-			log.Error("查询视频失败 id="+strconv.Itoa(data.Id), err)
+			log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
 			return common.NewError(-2, "查询失败")
 		}
 		if !exists {
@@ -134,24 +104,30 @@ func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
 
 		// ===== 更新字段 =====
 		updateData := map[string]interface{}{
-			"title":       data.Title,
-			"img":         data.Img,
-			"url":         data.Url,
-			"sort":        data.Sort,
-			"status":      data.Status,
-			"update_user": data.UpdateUser,
+			"title":       req.Title,
+			"img":         req.Img,
+			"url":         req.Url,
+			"sort":        req.Sort,
+			"status":      req.Status,
+			"update_user": req.UpdateUser,
 			"update_time": now,
 		}
 
 		// ===== 更新（走 repo）=====
-		if err = repo.Update(data.Id, updateData); err != nil {
+		if err = repo.Update(req.ID, updateData); err != nil {
 			tx.Rollback()
-			log.Error("视频更新 "+strconv.Itoa(data.Id), err)
+			log.Error("视频更新 "+strconv.Itoa(req.ID), err)
 			return common.NewError(-3, "视频更新失败")
 		}
 	} else {
-		data.Status = 1
-		data.CreateTime = common.Timestamp()
+		data := models.Movie{
+			Title:      req.Title,
+			Img:		req.Img,
+			Url:		req.Url,
+			Status:     1, // 默认启用
+			CreateUser: req.CreateUser,
+			CreateTime: now,
+		}
 
 		// ===== 创建（走 repo）=====
 		if err = repo.Create(&data); err != nil {
@@ -159,6 +135,7 @@ func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
 			log.Error("视频添加失败", err)
 			return common.NewError(-4, "视频添加失败")
 		}
+		req.ID = data.Id // 可选：回写 ID
 	}
 
 	// ===== 提交事务 =====
@@ -169,14 +146,14 @@ func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
 
 	// ===== 清缓存 =====
 	if isUpdate {
-		cacheKey := fmt.Sprintf("movie:detail:%d", data.Id)
+		cacheKey := fmt.Sprintf("movie:detail:%d", req.ID)
 		_ = common.Redis.Del(cacheKey).Err()
 	}
 
 	// ===== 日志 =====
 	if isAdmin {
 		if isUpdate {
-			log.Info(fmt.Sprintf("更新视频 id=%d", data.Id))
+			log.Info(fmt.Sprintf("更新视频 id=%d", req.ID))
 		} else {
 			log.Info("添加视频")
 		}
@@ -187,18 +164,6 @@ func (s *MovieService) Save(data models.Movie, isAdmin bool) error {
 
 // 软删除
 func (s *MovieService) DeleteById(req dto.MovieDeleteReq, isAdmin bool) error {
-	// 参数验证
-	entity := models.Movie{Id: req.ID}
-	rules := govalidator.MapData{
-		"id": []string{"required"},
-	}
-	messages := govalidator.MapData{
-		"id": []string{"required:id 不能为空"},
-	}
-	if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-		return common.NewError(-1, err.Error())
-	}
-
 	tx := db.DB.Self.Begin() //开启事务
 	defer func() {
 		//防止紧急停止
@@ -258,18 +223,6 @@ func (s *MovieService) DeleteById(req dto.MovieDeleteReq, isAdmin bool) error {
 
 // 变更状态
 func (s *MovieService) ChangeStatus(req dto.MovieChangeStatusReq, isAdmin bool) error {
-	// 参数验证
-	entity := models.Movie{Id: req.ID}
-	rules := govalidator.MapData{
-		"id": []string{"required"},
-	}
-	messages := govalidator.MapData{
-		"id": []string{"required:id 不能为空"},
-	}
-	if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-		return common.NewError(-1, err.Error())
-	}
-
 	tx := db.DB.Self.Begin() //开启事务
 	defer func() {
 		//防止紧急停止

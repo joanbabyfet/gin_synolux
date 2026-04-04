@@ -3,9 +3,7 @@ package admin
 import (
 	"gin-synolux/common"
 	"gin-synolux/dto"
-	"gin-synolux/models"
 	"gin-synolux/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,66 +19,55 @@ func NewMovieController(s *service.MovieService) *MovieController {
 
 // 获取列表
 func (c *MovieController) Index(ctx *gin.Context) {
-	title := ctx.Query("title")
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
-	status := int8(1)
+	var req dto.MovieQuery
 
-	if page < 1 {
-		page = 1
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	//补充上下文
+	req.Count = true
 
-	if page_size < 1 {
-		page_size = 10
-	}
-	
-	//获取文䓬列表
-	query := dto.MovieQuery{
-		Title:    title,
-		Page:     page,
-		PageSize: page_size,
-		Status:   &status,
-		Count:    true,
-	}
-	res, err := c.Service.List(query)
+	res, err := c.Service.List(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, res)
 }
 
 // 获取详情
 func (c *MovieController) Detail(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Query("id"))
+	var req dto.MovieDetailReq
 
-	info, err := c.Service.GetById(id)
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
+	}
+
+	info, err := c.Service.GetById(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, info)
 }
 
 // 保存
 func (c *MovieController) Save(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
-	status, _ := strconv.Atoi(ctx.PostForm("status"))
-	sort, _ := strconv.Atoi(ctx.PostForm("sort"))
-	title := ctx.PostForm("title")
-	img := ctx.PostForm("img")
-	url := ctx.PostForm("url")
+	var req dto.MovieSaveReq
 
-	//组装实体
-	data := models.Movie{
-		Id:      id,
-		Title:   title,
-		Img:     img,
-		Url: 	 url,
-		Sort: 	 int16(sort),
-		Status:  int8(status),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
-	if err := c.Service.Save(data, true); err != nil {
+
+	req.CreateUser = common.GetUserID(ctx)
+	req.UpdateUser = common.GetUserID(ctx)
+
+	if err := c.Service.Save(&req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
@@ -90,56 +77,60 @@ func (c *MovieController) Save(ctx *gin.Context) {
 
 // 删除
 func (c *MovieController) Delete(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.MovieDeleteReq
 
-	req := dto.MovieDeleteReq{
-		ID:     id,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
 
-	err := c.Service.DeleteById(req, false)
-	if err != nil {
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
+
+	if err := c.Service.DeleteById(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
 // 启用
 func (c *MovieController) Enable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.MovieChangeStatusReq
 
-	req := dto.MovieChangeStatusReq{
-		ID:     id,
-		Status: 1,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	req.Status = 1
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
-	err := c.Service.ChangeStatus(req, false)
-	if err != nil {
+	if err := c.Service.ChangeStatus(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }
 
 // 禁用
 func (c *MovieController) Disable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.MovieChangeStatusReq
 
-	req := dto.MovieChangeStatusReq{
-		ID:     id,
-		Status: 1,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
+	req.Status = 0
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
-	err := c.Service.ChangeStatus(req, false)
-	if err != nil {
+	if err := c.Service.ChangeStatus(req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
+
 	common.Success(ctx, nil)
 }

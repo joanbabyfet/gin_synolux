@@ -3,9 +3,7 @@ package admin
 import (
 	"gin-synolux/common"
 	"gin-synolux/dto"
-	"gin-synolux/models"
 	"gin-synolux/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,29 +19,16 @@ func NewAdController(s *service.AdService) *AdController {
 
 // 获取列表
 func (c *AdController) Index(ctx *gin.Context) {
-	catid, _ := strconv.Atoi(ctx.DefaultQuery("catid", "0"))
-	title := ctx.Query("title")
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	page_size, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
-
-	if page < 1 {
-		page = 1
+	var req dto.AdQuery
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, "参数错误", nil)
+		return
 	}
 
-	if page_size < 1 {
-		page_size = 10
-	}
-	
-	//获取文䓬列表
-	query := dto.AdQuery{
-		Title:    title,
-		Catid:    catid,
-		Page:     page,
-		PageSize: page_size,
-		Count:    true,
-		IsAdmin:  true,
-	}
-	res, err := c.Service.List(query)
+	//补充上下文
+	req.Count = true
+
+	res, err := c.Service.List(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -53,9 +38,14 @@ func (c *AdController) Index(ctx *gin.Context) {
 
 //获取详情
 func (c *AdController) Detail(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Query("id"))
+	var req dto.AdDetailReq
 
-	info, err := c.Service.GetById(id)
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
+	}
+
+	info, err := c.Service.GetById(req)
 	if err != nil {
 		common.HandleError(ctx, err)
 		return
@@ -65,27 +55,17 @@ func (c *AdController) Detail(ctx *gin.Context) {
 
 // 保存
 func (c *AdController) Save(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
-	catid, _ := strconv.Atoi(ctx.PostForm("catid"))
-	status, _ := strconv.Atoi(ctx.PostForm("status"))
-	sort, _ := strconv.Atoi(ctx.PostForm("sort"))
-	title := ctx.PostForm("title")
-	img := ctx.PostForm("img")
-	url := ctx.PostForm("url")
+	var req dto.AdSaveReq
 
-	//组装实体
-	data := models.Ad{
-		Id:      id,
-		Catid:   catid,
-		Title:   title,
-		Img:     img,
-		Url: 	 url,
-		Sort: 	 int16(sort),
-		Status:  int8(status),
-		CreateUser: common.GetUserID(ctx),
-		UpdateUser: common.GetUserID(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
-	if err := c.Service.Save(data, true); err != nil {
+
+	req.CreateUser = common.GetUserID(ctx)
+	req.UpdateUser = common.GetUserID(ctx)
+
+	if err := c.Service.Save(&req, true); err != nil {
 		common.HandleError(ctx, err)
 		return
 	}
@@ -95,13 +75,15 @@ func (c *AdController) Save(ctx *gin.Context) {
 
 // 删除
 func (c *AdController) Delete(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
-	
-	req := dto.AdDeleteReq{
-		ID:     id,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	var req dto.AdDeleteReq
+
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
+	//补充上下文
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
 	err := c.Service.DeleteById(req, true)
 	if err != nil {
@@ -113,14 +95,15 @@ func (c *AdController) Delete(ctx *gin.Context) {
 
 // 启用
 func (c *AdController) Enable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.AdChangeStatusReq
 
-	req := dto.AdChangeStatusReq{
-		ID:     id,
-		Status: 1,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
+	req.Status = 1
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
 	err := c.Service.ChangeStatus(req, true)
 	if err != nil {
@@ -132,14 +115,15 @@ func (c *AdController) Enable(ctx *gin.Context) {
 
 // 禁用
 func (c *AdController) Disable(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.PostForm("id"))
+	var req dto.AdChangeStatusReq
 
-	req := dto.AdChangeStatusReq{
-		ID:     id,
-		Status: 0,
-		UserID: common.GetUserID(ctx),
-		Role:   common.GetRole(ctx),
+	if err := ctx.ShouldBind(&req); err != nil {
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
+		return
 	}
+	req.Status = 0
+	req.UserID = common.GetUserID(ctx)
+	req.Role = common.GetRole(ctx)
 
 	err := c.Service.ChangeStatus(req, true)
 	if err != nil {

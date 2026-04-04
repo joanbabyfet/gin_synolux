@@ -18,8 +18,8 @@ func NewAdRepo(db *gorm.DB) *AdRepo {
 
 // 列表
 func (r *AdRepo) List(query dto.AdQuery) ([]*models.Ad, int64, error) {
-	qs := r.db.Model(&models.Ad{}).Where("delete_time = ?", 0)
-
+	qs := r.db.Debug().Model(&models.Ad{}).Where("delete_time = ?", 0)
+	
 	if query.Status != nil {
 		qs = qs.Where("status = ?", *query.Status)
 	}

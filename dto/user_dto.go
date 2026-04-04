@@ -12,19 +12,46 @@ type UserQuery struct {
 }
 
 // ==================== Request ====================
-type UserLoginReq struct {
-	Username string `json:"username" description:"账号"`
-	Password string `json:"password" description:"密码"`
-	Code     string `json:"code" description:"验证码"`
-	Key      string `json:"key" description:"验证码key"`
-	LoginIp  string `json:"login_ip" description:"最后登录IP"`
+type UserDetailReq struct {
+	UID string `form:"id" binding:"required"`
 }
 
-type UserPasswordReq struct {
-	Password    string `json:"password"`     //原始密码
-	NewPassword string `json:"new_password"` //新密码
-	RePassword  string `json:"re_password"`  //确认密码
-	Uid         string `json:"uid"`          //用户id
+type UserLoginReq struct {
+	Username string `form:"username" binding:"required"`
+	Password string `form:"password" binding:"required"`
+	Code     string `form:"code"` //验证码
+	Key      string `form:"key"`	//验证码key
+	Ip      string `form:"ip"`
+}
+
+type UserSetPasswordReq struct {
+	Password    string `form:"password" binding:"required"`
+	NewPassword string `form:"new_password" binding:"required"`
+	RePassword  string `form:"re_password" binding:"required"`
+	UID    		string `form:"id"`
+}
+
+type UserRegisterReq struct {
+	Username  string `form:"username"`
+	Password  string `form:"password"`
+	Realname  string `form:"realname"`
+	Email     string `form:"email"`
+	PhoneCode string `form:"phone_code"`
+	Phone     string `form:"phone"`
+	Avatar    string `form:"avatar"`
+	Sex       int8   `form:"sex"`
+	RegIp 	string	`form:"reg_ip"`
+}
+
+type UserProfileReq struct {
+	ID       string `form:"id"` // 有值=更新，无值=新增
+	Password  string `form:"password"`
+	Realname  string `form:"realname"`
+	Email     string `form:"email"`
+	PhoneCode string `form:"phone_code"`
+	Phone     string `form:"phone"`
+	Avatar    string `form:"avatar"`
+	Sex       int8   `form:"sex"`
 }
 
 // ==================== Response ====================

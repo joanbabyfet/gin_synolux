@@ -13,7 +13,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/lexkong/log"
-	"github.com/thedevsaddam/govalidator"
 )
 
 type ArticleService struct {
@@ -44,21 +43,9 @@ func (s *ArticleService) List(query dto.ArticleQuery) (*dto.ArticleListResp, err
 }
 
 // 获取详情
-func (s *ArticleService) GetById(id int) (*models.Article, error) {
-	// 参数验证
-	entity := models.Article{Id: id}
-    rules := govalidator.MapData{
-        "id": []string{"required"},
-    }
-    messages := govalidator.MapData{
-        "id": []string{"required:id 不能为空"},
-    }
-    if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-        return nil, common.NewError(-1, err.Error())
-    }
-
+func (s *ArticleService) GetById(req dto.ArticleDetailReq) (*models.Article, error) {
 	//先查缓存
-	cache_key := fmt.Sprintf("article:detail:%d", id)
+	cache_key := fmt.Sprintf("article:detail:%d", req.ID)
 	val, err := common.Redis.Get(cache_key).Result()
 	if err == nil {
 		var info models.Article
@@ -68,9 +55,9 @@ func (s *ArticleService) GetById(id int) (*models.Article, error) {
 	}
 
 	//缓存未命中，查库
-	info, err := s.repo.GetByID(id)
+	info, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		log.Error("文章不存在 "+strconv.Itoa(id), err)
+		log.Error("文章不存在 "+strconv.Itoa(req.ID), err)
 		return nil, common.NewError(-1, "文章不存在")
 	}
 
@@ -84,25 +71,8 @@ func (s *ArticleService) GetById(id int) (*models.Article, error) {
 }
 
 // 保存
-func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
-	rules := govalidator.MapData{
-        "title": []string{"required"},
-    }
-    messages := govalidator.MapData{
-        "title": []string{"required:title 不能为空"},
-    }
-
-	isUpdate := data.Id > 0
-
-    // 更新操作必须验证 ID
-    if isUpdate {
-        rules["id"] = []string{"required"}
-        messages["id"] = []string{"required:id 不能为空"}
-    }
-
-    if err := common.ValidateStruct(&data, rules, messages); err != nil {
-        return common.NewError(-1, err.Error())
-    }
+func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
+	isUpdate := req.ID > 0
 
 	//开启事务
 	tx := db.DB.Self.Begin() 
@@ -121,10 +91,10 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 
 	if isUpdate {
 		//检测数据是否存在
-		exists, err := repo.ExistsByID(data.Id)
+		exists, err := repo.ExistsByID(req.ID)
 		if err != nil {
 			tx.Rollback()
-			log.Error("查询文章失败 id="+strconv.Itoa(data.Id), err)
+			log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
 			return common.NewError(-2, "查询失败")
 		}
 		if !exists {
@@ -134,24 +104,32 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 		
 		// ===== 更新字段 =====
 		updateData := map[string]interface{}{
-			"catid":       data.Catid,
-			"title":       data.Title,
-			"info":        data.Info,
-			"content":     data.Content,
-			"author":      data.Author,
-			"update_user": data.UpdateUser,
+			"catid":       req.Catid,
+			"title":       req.Title,
+			"info":        req.Info,
+			"content":     req.Content,
+			"author":      req.Author,
+			"update_user": req.UpdateUser,
 			"update_time": now,
 		}
 
 		// ===== 更新（走 repo）=====
-		if err = repo.Update(data.Id, updateData); err != nil {
+		if err = repo.Update(req.ID, updateData); err != nil {
 			tx.Rollback()
-			log.Error("文章更新 "+strconv.Itoa(data.Id), err)
+			log.Error("文章更新 "+strconv.Itoa(req.ID), err)
 			return common.NewError(-3, "文章更新失败")
 		}
 	} else {
-		data.Status = 1
-		data.CreateTime = common.Timestamp()
+		data := models.Article{
+			Catid:      req.Catid,
+			Title:      req.Title,
+			Info:		req.Info,
+			Content:	req.Content,
+			Author:		req.Author,
+			Status:     1, // 默认启用
+			CreateUser: req.CreateUser,
+			CreateTime: now,
+		}
 
 		// ===== 创建（走 repo）=====
 		if err = repo.Create(&data); err != nil {
@@ -159,6 +137,7 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 			log.Error("文章添加失败", err)
 			return common.NewError(-4, "文章添加失败")
 		}
+		req.ID = data.Id // 可选：回写 ID
 	}
 
 	// ===== 提交事务 =====
@@ -169,14 +148,14 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 
 	// ===== 清缓存 =====
 	if isUpdate {
-		cacheKey := fmt.Sprintf("article:detail:%d", data.Id)
+		cacheKey := fmt.Sprintf("article:detail:%d", req.ID)
 		_ = common.Redis.Del(cacheKey).Err()
 	}
 
 	// ===== 日志 =====
 	if isAdmin {
 		if isUpdate {
-			log.Info(fmt.Sprintf("更新文章 id=%d", data.Id))
+			log.Info(fmt.Sprintf("更新文章 id=%d", req.ID))
 		} else {
 			log.Info("添加文章")
 		}
@@ -187,18 +166,6 @@ func (s *ArticleService) Save(data models.Article, isAdmin bool) (error) {
 
 // 软删除
 func (s *ArticleService) DeleteById(req dto.ArticleDeleteReq, isAdmin bool) (error) {
-	// 参数验证
-	entity := models.Article{Id: req.ID}
-    rules := govalidator.MapData{
-        "id": []string{"required"},
-    }
-    messages := govalidator.MapData{
-        "id": []string{"required:id 不能为空"},
-    }
-    if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-        return common.NewError(-1, err.Error())
-    }
-
 	tx := db.DB.Self.Begin() //开启事务
 	defer func() {
 		//防止紧急停止
@@ -258,18 +225,6 @@ func (s *ArticleService) DeleteById(req dto.ArticleDeleteReq, isAdmin bool) (err
 
 //变更状态
 func (s *ArticleService) ChangeStatus(req dto.ArticleChangeStatusReq, isAdmin bool) (error) {
-	// 参数验证
-	entity := models.Article{Id: req.ID}
-    rules := govalidator.MapData{
-        "id": []string{"required"},
-    }
-    messages := govalidator.MapData{
-        "id": []string{"required:id 不能为空"},
-    }
-    if err := common.ValidateStruct(&entity, rules, messages); err != nil {
-        return common.NewError(-1, err.Error())
-    }
-
 	tx := db.DB.Self.Begin() //开启事务
 	defer func() {
 		//防止紧急停止
