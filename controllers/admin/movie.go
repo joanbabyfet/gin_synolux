@@ -21,7 +21,7 @@ func NewMovieController(s *service.MovieService) *MovieController {
 func (c *MovieController) Index(ctx *gin.Context) {
 	var req dto.MovieQuery
 
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, "参数错误", nil)
 		return
 	}
@@ -41,7 +41,7 @@ func (c *MovieController) Index(ctx *gin.Context) {
 func (c *MovieController) Detail(ctx *gin.Context) {
 	var req dto.MovieDetailReq
 
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, "参数错误", nil)
 		return
 	}

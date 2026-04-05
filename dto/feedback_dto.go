@@ -11,7 +11,7 @@ type FeedbackQuery struct {
 	Content  string `form:"content"`
 
 	// 内部字段
-	Count bool `json:"-"`
+	Count bool `form:"-"`
 }
 
 // ==================== Request ====================

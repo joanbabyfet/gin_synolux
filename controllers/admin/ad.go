@@ -20,7 +20,7 @@ func NewAdController(s *service.AdService) *AdController {
 // 获取列表
 func (c *AdController) Index(ctx *gin.Context) {
 	var req dto.AdQuery
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, "参数错误", nil)
 		return
 	}
@@ -40,7 +40,7 @@ func (c *AdController) Index(ctx *gin.Context) {
 func (c *AdController) Detail(ctx *gin.Context) {
 	var req dto.AdDetailReq
 
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}

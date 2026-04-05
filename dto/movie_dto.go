@@ -8,16 +8,16 @@ type MovieQuery struct {
 	Limit    int    `form:"limit,default=0"`
 
 	// 内部控制
-	Status *int8 `json:"-"`
-	Count  bool  `json:"-"`
+	Status *int8 `form:"-"`
+	Count  bool  `form:"-"`
 }
 
 // ==================== Request ====================
 type MovieDeleteReq struct {
-	ID int `json:"id" binding:"required"`
+	ID int `form:"id" binding:"required"`
 
-	UserID string `json:"-"`
-	Role   string `json:"-"`
+	UserID string `form:"-"`
+	Role   string `form:"-"`
 }
 
 type MovieDetailReq struct {
@@ -36,11 +36,11 @@ type MovieSaveReq struct {
 }
 
 type MovieChangeStatusReq struct {
-	ID     int `json:"id" binding:"required"`
-	Status int `json:"status" binding:"required"`
+	ID     int `form:"id" binding:"required"`
+	Status int `form:"status" binding:"required"`
 
-	UserID string `json:"-"`
-	Role   string `json:"-"`
+	UserID string `form:"-"`
+	Role   string `form:"-"`
 }
 
 // ==================== Response ====================

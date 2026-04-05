@@ -21,7 +21,7 @@ func NewArticleController(s *service.ArticleService) *ArticleController {
 func (c *ArticleController) Index(ctx *gin.Context) {
 	var req dto.ArticleQuery
 
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, "参数错误", nil)
 		return
 	}
@@ -41,7 +41,7 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 func (c *ArticleController) Detail(ctx *gin.Context) {
 	var req dto.ArticleDetailReq
 
-	if err := ctx.ShouldBind(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil {
 		common.Fail(ctx, -1, "参数错误", nil)
 		return
 	}

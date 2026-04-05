@@ -4,8 +4,8 @@ package dto
 type UserQuery struct {
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`
-	Username string `json:"username" description:"账号"` //账号
-	Status   *int    `json:"status" description:"状态"`    //状态
+	Username string `form:"username" description:"账号"` //账号
+	Status   *int    `form:"status" description:"状态"`    //状态
 	Limit    int    `form:"limit"`
 	Count    bool   `form:"count"`
 	IsAdmin	 bool   `form:"is_admin"` // 是否后台请求

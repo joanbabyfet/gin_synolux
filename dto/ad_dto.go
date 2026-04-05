@@ -9,8 +9,8 @@ type AdQuery struct {
 	PageSize int    `form:"page_size,default=10"`
 	Limit     int   `form:"limit,default=0"`
 	//内部控制
-	Status  *int `json:"-"`
-	Count   bool `json:"-"` //返回总条数
+	Status  *int `form:"-"`
+	Count   bool `form:"-"` //返回总条数
 }
 
 // ==================== Request ====================
@@ -31,16 +31,16 @@ type AdSaveReq struct {
 }
 
 type AdDeleteReq struct {
-	ID     int    `form:"id" json:"id" binding:"required"`
-	UserID string `json:"-"`
-	Role   string `json:"-"`
+	ID     int    `form:"id" binding:"required"`
+	UserID string `form:"-"`
+	Role   string `form:"-"`
 }
 
 type AdChangeStatusReq struct {
-	ID     int    `form:"id" json:"id" binding:"required"`
-	Status int    `json:"-"` //不能让前端传
-	UserID string `json:"-"` //不能让前端传, 必须从 JWT 来
-	Role   string `json:"-"` //不能让前端传, 必须从 JWT 来
+	ID     int    `form:"id" binding:"required"`
+	Status int    `form:"-"` //不能让前端传
+	UserID string `form:"-"` //不能让前端传, 必须从 JWT 来
+	Role   string `form:"-"` //不能让前端传, 必须从 JWT 来
 }
 
 // ==================== Response ====================
