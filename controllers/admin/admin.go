@@ -24,7 +24,7 @@ func (c *AdminController) Login(ctx *gin.Context) {
 	var req dto.AdminLoginReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (c *AdminController) SetPassword(ctx *gin.Context) {
 	var req dto.AdminSetPasswordReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -114,7 +114,7 @@ func (c *AdminController) Register(ctx *gin.Context) {
 	var req dto.AdminRegisterReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -134,7 +134,7 @@ func (c *AdminController) Profile(ctx *gin.Context) {
 
 	// 统一绑定（支持 form / json）
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 

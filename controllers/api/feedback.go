@@ -23,7 +23,7 @@ func (c *FeedbackController) Save(ctx *gin.Context) {
 	var req dto.FeedbackSaveReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 

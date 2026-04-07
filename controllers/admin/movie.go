@@ -22,7 +22,7 @@ func (c *MovieController) Index(ctx *gin.Context) {
 	var req dto.MovieQuery
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 	//补充上下文
@@ -42,7 +42,7 @@ func (c *MovieController) Detail(ctx *gin.Context) {
 	var req dto.MovieDetailReq
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (c *MovieController) Delete(ctx *gin.Context) {
 	var req dto.MovieDeleteReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (c *MovieController) Enable(ctx *gin.Context) {
 	var req dto.MovieChangeStatusReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 	req.Status = 1
@@ -120,7 +120,7 @@ func (c *MovieController) Disable(ctx *gin.Context) {
 	var req dto.MovieChangeStatusReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 	req.Status = 0

@@ -53,6 +53,7 @@ func Fail(ctx *gin.Context, code int, msg string, data interface{}) {
 	})
 }
 
+//业务错误（Service 层）, 比如 数据不存在／权限不足／状态不允许删除
 func HandleError(ctx *gin.Context, err error) {
 	if err == nil {
 		return

@@ -24,7 +24,7 @@ func (c *UserController) Login(ctx *gin.Context) {
 	var req dto.UserLoginReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (c *UserController) SetPassword(ctx *gin.Context) {
 	var req dto.UserSetPasswordReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 	req.UID = uid
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 	var req dto.UserRegisterReq
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (c *UserController) Profile(ctx *gin.Context) {
 
 	// 统一绑定（支持 form / json）
 	if err := ctx.ShouldBind(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 

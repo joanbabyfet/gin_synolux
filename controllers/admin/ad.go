@@ -21,7 +21,7 @@ func NewAdController(s *service.AdService) *AdController {
 func (c *AdController) Index(ctx *gin.Context) {
 	var req dto.AdQuery
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 

@@ -22,7 +22,7 @@ func (c *ArticleController) HomeArticle(ctx *gin.Context) {
 	var req dto.ArticleQuery
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 	//补充上下文
@@ -45,7 +45,7 @@ func (c *ArticleController) Index(ctx *gin.Context) {
 	var req dto.ArticleQuery
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 	//补充上下文
@@ -65,7 +65,7 @@ func (c *ArticleController) Detail(ctx *gin.Context) {
 	var req dto.ArticleDetailReq
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		common.Fail(ctx, -1, "参数错误", nil)
+		common.Fail(ctx, -1, common.GetValidMsg(err), nil)
 		return
 	}
 
