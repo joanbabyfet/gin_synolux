@@ -1,6 +1,7 @@
 package common
 
 import (
+	"gin-synolux/consts"
 	"net/http"
 	"time"
 
@@ -66,5 +67,5 @@ func HandleError(ctx *gin.Context, err error) {
 	}
 
 	// 未知错误
-	Fail(ctx, 500, "internal server error", nil)
+	Fail(ctx, consts.UNKNOWN_ERROR_STATUS, "internal server error", nil)
 }
