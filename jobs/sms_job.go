@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"gin-synolux/common"
-
-	"github.com/lexkong/log"
 )
 
 type SubscribeSMS struct {
@@ -24,7 +22,7 @@ func (s *SubscribeSMS) ActionSMS(args interface{}) error {
 	//发送
 	ok := common.SendSMS(scb.To, scb.Body)
 	if !ok {
-		log.Error("发送短信"+scb.To+"失败", nil)
+		common.Log.Error("发送短信"+scb.To+"失败", nil)
 	}
 	return nil
 }

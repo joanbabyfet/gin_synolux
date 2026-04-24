@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"gin-synolux/common"
-
-	"github.com/lexkong/log"
 )
 
 type SubscribeMail struct {
@@ -25,7 +23,7 @@ func (s *SubscribeMail) ActionMail(args interface{}) error {
 	//发送
 	ok := common.SendMail(scb.To, scb.Subject, scb.Body)
 	if !ok {
-		log.Error("发送邮件"+scb.To+"失败", nil)
+		common.Log.Error("发送邮件"+scb.To+"失败", nil)
 	}
 	return nil
 }

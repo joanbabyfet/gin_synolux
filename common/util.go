@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -106,7 +105,7 @@ func ByteEncoder(s interface{}) []byte {
 	var enc_result bytes.Buffer
 	enc := gob.NewEncoder(&enc_result)
 	if err := enc.Encode(s); err != nil {
-		log.Fatal("encode error:", err)
+		Log.Fatal("encode error:", err)
 	}
 
 	return enc_result.Bytes()

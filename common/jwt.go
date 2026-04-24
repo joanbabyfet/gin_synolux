@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/lexkong/log"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -58,7 +57,7 @@ func GenerateToken(userID string, role string, expiredSeconds int) (tokenString 
 	mySigningKey := []byte(SecretKEY)
 	// 过期时间 = 当前时间（/s）+ expiredSeconds（/s）
 	expireAt := time.Now().Add(time.Second * time.Duration(expiredSeconds)).Unix()
-	log.Info("Token 将到期于：" + time.Unix(expireAt, 0).String())
+	Log.Info("Token 将到期于：" + time.Unix(expireAt, 0).String())
 
 	claims := MyCustomClaims{
 		userID,
@@ -98,11 +97,11 @@ func ValidateToken(tokenString string) (*JwtPayload, error) {
 	// 获取payload-声明内容
 	claims, ok := token.Claims.(*MyCustomClaims)
 	if ok && token.Valid {
-		log.Info(fmt.Sprintf("%v %v",
+		Log.Info(fmt.Sprintf("%v %v",
 			claims.UserID,
 			claims.StandardClaims.ExpiresAt, // 过期时间
 		))
-		log.Info("Token 将过期于：" + time.Unix(claims.StandardClaims.ExpiresAt, 0).String())
+		Log.Info("Token 将过期于：" + time.Unix(claims.StandardClaims.ExpiresAt, 0).String())
 		return &JwtPayload{
 			Username:  claims.StandardClaims.Issuer, // 用户名：发行者
 			UserID:    claims.UserID,
@@ -111,7 +110,7 @@ func ValidateToken(tokenString string) (*JwtPayload, error) {
 			ExpiresAt: claims.StandardClaims.ExpiresAt,
 		}, nil
 	} else {
-		log.Info(err.Error())
+		Log.Info(err.Error())
 		return nil, errors.New("错误: token验证失败")
 	}
 }

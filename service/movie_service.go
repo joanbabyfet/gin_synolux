@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 )
 
 type MovieService struct {
@@ -57,7 +56,7 @@ func (s *MovieService) GetById(req dto.MovieDetailReq) (*models.Movie, error) {
 	//缓存未命中，查库
 	info, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		log.Error("视频不存在 "+strconv.Itoa(req.ID), err)
+		common.Log.Error("视频不存在 "+strconv.Itoa(req.ID), err)
 		return nil, common.NewError(-1, "视频不存在")
 	}
 
@@ -94,7 +93,7 @@ func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
 		exists, err := repo.ExistsByID(req.ID)
 		if err != nil {
 			tx.Rollback()
-			log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
+			common.Log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
 			return common.NewError(-2, "查询失败")
 		}
 		if !exists {
@@ -116,7 +115,7 @@ func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
 		// ===== 更新（走 repo）=====
 		if err = repo.Update(req.ID, updateData); err != nil {
 			tx.Rollback()
-			log.Error("视频更新 "+strconv.Itoa(req.ID), err)
+			common.Log.Error("视频更新 "+strconv.Itoa(req.ID), err)
 			return common.NewError(-3, "视频更新失败")
 		}
 	} else {
@@ -132,7 +131,7 @@ func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
 		// ===== 创建（走 repo）=====
 		if err = repo.Create(&data); err != nil {
 			tx.Rollback()
-			log.Error("视频添加失败", err)
+			common.Log.Error("视频添加失败", err)
 			return common.NewError(-4, "视频添加失败")
 		}
 		req.ID = data.Id // 可选：回写 ID
@@ -140,7 +139,7 @@ func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
 
 	// ===== 提交事务 =====
 	if err = tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-5, err.Error())
 	}
 
@@ -153,9 +152,9 @@ func (s *MovieService) Save(req *dto.MovieSaveReq, isAdmin bool) error {
 	// ===== 日志 =====
 	if isAdmin {
 		if isUpdate {
-			log.Info(fmt.Sprintf("更新视频 id=%d", req.ID))
+			common.Log.Info(fmt.Sprintf("更新视频 id=%d", req.ID))
 		} else {
-			log.Info("添加视频")
+			common.Log.Info("添加视频")
 		}
 	}
 
@@ -179,7 +178,7 @@ func (s *MovieService) DeleteById(req dto.MovieDeleteReq, isAdmin bool) error {
 	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -197,25 +196,25 @@ func (s *MovieService) DeleteById(req dto.MovieDeleteReq, isAdmin bool) error {
 	//更新（删除）
 	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("视频删除失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("视频删除失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "删除失败")
 	}
 
 	//提交事务
 	if err := tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-4, err.Error())
 	}
 
 	//删除缓存（事务成功后）
 	cacheKey := fmt.Sprintf("movie:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
-		log.Error("删除缓存失败", err)
+		common.Log.Error("删除缓存失败", err)
 	}
 
 	//日志
 	if isAdmin {
-		log.Infof("删除视频 id=%d", req.ID)
+		common.Log.Infof("删除视频 id=%d", req.ID)
 	}
 
 	return nil
@@ -239,7 +238,7 @@ func (s *MovieService) ChangeStatus(req dto.MovieChangeStatusReq, isAdmin bool) 
 	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("查询视频失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -256,24 +255,24 @@ func (s *MovieService) ChangeStatus(req dto.MovieChangeStatusReq, isAdmin bool) 
 
 	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("修改视频状态失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("修改视频状态失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "状态修改失败")
 	}
 
 	//手动提交事务
 	if err := tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-4, err.Error())
 	}
 
 	cacheKey := fmt.Sprintf("movie:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
-		log.Error("删除缓存失败", err)
+		common.Log.Error("删除缓存失败", err)
 	}
 
 	// 后台操作日志
 	if isAdmin {
-		log.Infof("修改视频状态 id=%d status=%d", req.ID, req.Status)
+		common.Log.Infof("修改视频状态 id=%d status=%d", req.ID, req.Status)
 	}
 
 	return nil

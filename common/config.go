@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 )
 
@@ -26,7 +25,7 @@ func InitConfig(cfg string) error {
 	c.watchConfig()
 
 	//日志初始化
-	c.initLog()
+	//c.initLog()
 	return nil
 }
 
@@ -60,22 +59,22 @@ func (c *Config) initConfig() error {
 func (c *Config) watchConfig() {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Infof("Config file changed: %s", e.Name)
+		Log.Infof("Config file changed: %s", e.Name)
 	})
 }
 
 // 日志初始化
-func (c *Config) initLog() {
-	passLagerCfg := log.PassLagerCfg{
-		Writers:        viper.GetString("log.writers"),
-		LoggerLevel:    viper.GetString("log.logger_level"),
-		LoggerFile:     viper.GetString("log.Logger_file"),
-		LogFormatText:  viper.GetBool("log.log_format_text"),
-		RollingPolicy:  viper.GetString("log.rollingPolice"),
-		LogRotateDate:  viper.GetInt("log.log_rotate_date"),
-		LogRotateSize:  viper.GetInt("log.log_rotate_size"),
-		LogBackupCount: viper.GetInt("log.log_backup_count"),
-	}
+// func (c *Config) initLog() {
+// 	passLagerCfg := log.PassLagerCfg{
+// 		Writers:        viper.GetString("log.writers"),
+// 		LoggerLevel:    viper.GetString("log.logger_level"),
+// 		LoggerFile:     viper.GetString("log.Logger_file"),
+// 		LogFormatText:  viper.GetBool("log.log_format_text"),
+// 		RollingPolicy:  viper.GetString("log.rollingPolice"),
+// 		LogRotateDate:  viper.GetInt("log.log_rotate_date"),
+// 		LogRotateSize:  viper.GetInt("log.log_rotate_size"),
+// 		LogBackupCount: viper.GetInt("log.log_backup_count"),
+// 	}
 
-	log.InitWithConfig(&passLagerCfg)
-}
+// 	log.InitWithConfig(&passLagerCfg)
+// }

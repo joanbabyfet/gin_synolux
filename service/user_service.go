@@ -8,7 +8,6 @@ import (
 	"gin-synolux/repository"
 
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 )
 
@@ -57,14 +56,14 @@ func (s *UserService) Login(req *dto.UserLoginReq) (*dto.UserLoginResp, error) {
 	}
 
 	if err := s.repo.Update(user.Id, updateData); err != nil {
-		log.Error("更新登录信息失败", err)
+		common.Log.Error("更新登录信息失败", err)
 		return nil, common.NewError(-5, "登录异常")
 	}
 
 	// 用 pkg/jwt
 	token, err := common.GenerateToken(user.Id, common.RoleUser, 0)
 	if err != nil {
-		log.Error("生成token失败", err)
+		common.Log.Error("生成token失败", err)
 		return nil, common.NewError(-6, "生成token失败")
 	}
 
@@ -92,7 +91,7 @@ func (s *UserService) SetPassword(req *dto.UserSetPasswordReq) error {
 	// ===== 查用户（走 repo）=====
 	user, err := s.repo.GetByID(req.UID)
 	if err != nil {
-		log.Error("查询用户失败", err)
+		common.Log.Error("查询用户失败", err)
 		return common.NewError(-3, "系统错误")
 	}
 	if user == nil {
@@ -101,14 +100,14 @@ func (s *UserService) SetPassword(req *dto.UserSetPasswordReq) error {
 
 	// ===== 校验旧密码 =====
 	if !common.PasswordVerify(req.Password, user.Password) {
-		log.Warn("原始密码错误 uid=" + req.UID)
+		common.Log.Warn("原始密码错误 uid=" + req.UID)
 		return common.NewError(-4, "原始密码错误")
 	}
 
 	// ===== 新密码加密 =====
 	hash, err := common.PasswordHash(req.NewPassword)
 	if err != nil {
-		log.Error("密码加密失败", err)
+		common.Log.Error("密码加密失败", err)
 		return common.NewError(-5, "系统错误")
 	}
 
@@ -118,7 +117,7 @@ func (s *UserService) SetPassword(req *dto.UserSetPasswordReq) error {
 	}
 
 	if err := s.repo.Update(req.UID, updateData); err != nil {
-		log.Error("密码更新失败", err)
+		common.Log.Error("密码更新失败", err)
 		return common.NewError(-6, "密码更新失败")
 	}
 
@@ -130,7 +129,7 @@ func (s *UserService) GetById(req dto.UserDetailReq) (*models.User, error) {
 	// 👉 走 repo
 	user, err := s.repo.GetByID(req.UID)
 	if err != nil {
-		log.Error("查询用户失败 id="+req.UID, err)
+		common.Log.Error("查询用户失败 id="+req.UID, err)
 		return nil, common.NewError(-2, "查询失败")
 	}
 

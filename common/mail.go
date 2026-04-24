@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"strconv"
 
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 	"gopkg.in/gomail.v2"
 )
@@ -26,7 +25,7 @@ func SendMail(to string, subject string, body string) bool {
 	d := gomail.NewDialer(mail_host, mail_port, mail_username, mail_password)
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	if err := d.DialAndSend(m); err != nil {
-		log.Error("发送邮件失败", err)
+		Log.Error("发送邮件失败", err)
 		//panic(err) //后续代码不会执行
 		return false
 	}

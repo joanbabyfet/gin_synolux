@@ -22,8 +22,8 @@ go run main.go
 ```
 
 ## Requires
-go v1.19.3
-gin v1.9.1
+go v1.23.12
+gin v1.11.0
 
 ## Maintainers
 Alan

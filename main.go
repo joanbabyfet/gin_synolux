@@ -22,6 +22,10 @@ func main() {
 	if err := common.InitConfig(*cfg); err != nil {
 		panic(err)
 	}
+
+	// 这里初始化 logger（最佳位置）
+	common.InitLogger()
+
 	// 设置gin运行模式
 	gin.SetMode(gin.DebugMode)
 

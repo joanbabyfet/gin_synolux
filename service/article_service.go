@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 )
 
 type ArticleService struct {
@@ -57,7 +56,7 @@ func (s *ArticleService) GetById(req dto.ArticleDetailReq) (*models.Article, err
 	//缓存未命中，查库
 	info, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		log.Error("文章不存在 "+strconv.Itoa(req.ID), err)
+		common.Log.Error("文章不存在 "+strconv.Itoa(req.ID), err)
 		return nil, common.NewError(-1, "文章不存在")
 	}
 
@@ -94,7 +93,7 @@ func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
 		exists, err := repo.ExistsByID(req.ID)
 		if err != nil {
 			tx.Rollback()
-			log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
+			common.Log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
 			return common.NewError(-2, "查询失败")
 		}
 		if !exists {
@@ -116,7 +115,7 @@ func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
 		// ===== 更新（走 repo）=====
 		if err = repo.Update(req.ID, updateData); err != nil {
 			tx.Rollback()
-			log.Error("文章更新 "+strconv.Itoa(req.ID), err)
+			common.Log.Error("文章更新 "+strconv.Itoa(req.ID), err)
 			return common.NewError(-3, "文章更新失败")
 		}
 	} else {
@@ -134,7 +133,7 @@ func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
 		// ===== 创建（走 repo）=====
 		if err = repo.Create(&data); err != nil {
 			tx.Rollback()
-			log.Error("文章添加失败", err)
+			common.Log.Error("文章添加失败", err)
 			return common.NewError(-4, "文章添加失败")
 		}
 		req.ID = data.Id // 可选：回写 ID
@@ -142,7 +141,7 @@ func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
 
 	// ===== 提交事务 =====
 	if err = tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-5, err.Error())
 	}
 
@@ -155,9 +154,9 @@ func (s *ArticleService) Save(req *dto.ArticleSaveReq, isAdmin bool) (error) {
 	// ===== 日志 =====
 	if isAdmin {
 		if isUpdate {
-			log.Info(fmt.Sprintf("更新文章 id=%d", req.ID))
+			common.Log.Info(fmt.Sprintf("更新文章 id=%d", req.ID))
 		} else {
-			log.Info("添加文章")
+			common.Log.Info("添加文章")
 		}
 	}
 
@@ -181,7 +180,7 @@ func (s *ArticleService) DeleteById(req dto.ArticleDeleteReq, isAdmin bool) (err
 	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -199,25 +198,25 @@ func (s *ArticleService) DeleteById(req dto.ArticleDeleteReq, isAdmin bool) (err
 	//更新（删除）
 	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("文章删除失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("文章删除失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "删除失败")
 	}
 
 	//提交事务
 	if err := tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-4, err.Error())
 	}
 
 	//删除缓存（事务成功后）
 	cacheKey := fmt.Sprintf("article:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
-		log.Error("删除缓存失败", err)
+		common.Log.Error("删除缓存失败", err)
 	}
 
 	//日志
 	if isAdmin {
-		log.Infof("删除文章 id=%d", req.ID)
+		common.Log.Infof("删除文章 id=%d", req.ID)
 	}
 
 	return nil
@@ -241,7 +240,7 @@ func (s *ArticleService) ChangeStatus(req dto.ArticleChangeStatusReq, isAdmin bo
 	exists, err := repo.ExistsByID(req.ID)
 	if err != nil {
 		tx.Rollback()
-		log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("查询文章失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-2, "查询失败")
 	}
 	if !exists {
@@ -258,24 +257,24 @@ func (s *ArticleService) ChangeStatus(req dto.ArticleChangeStatusReq, isAdmin bo
 
 	if err := repo.Update(req.ID, data); err != nil {
 		tx.Rollback()
-		log.Error("修改文章状态失败 id="+strconv.Itoa(req.ID), err)
+		common.Log.Error("修改文章状态失败 id="+strconv.Itoa(req.ID), err)
 		return common.NewError(-3, "状态修改失败")
 	}
 
 	//手动提交事务
 	if err := tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-4, err.Error())
 	}
 
 	cacheKey := fmt.Sprintf("article:detail:%d", req.ID)
 	if err := common.Redis.Del(cacheKey).Err(); err != nil {
-		log.Error("删除缓存失败", err)
+		common.Log.Error("删除缓存失败", err)
 	}
 
 	// 后台操作日志
 	if isAdmin {
-		log.Infof("修改文章状态 id=%d status=%d", req.ID, req.Status)
+		common.Log.Infof("修改文章状态 id=%d status=%d", req.ID, req.Status)
 	}
 
 	return nil

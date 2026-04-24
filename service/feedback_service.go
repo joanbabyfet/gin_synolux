@@ -8,7 +8,6 @@ import (
 	"gin-synolux/repository"
 
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 )
 
 type FeedbackService struct {
@@ -52,12 +51,12 @@ func (s *FeedbackService) Save(req *dto.FeedbackSaveReq, isAdmin bool) (error) {
 	// 统一走 repo
 	if err := repo.Create(&data); err != nil {
 		tx.Rollback()
-		log.Error("反馈添加失败", err)
+		common.Log.Error("反馈添加失败", err)
 		return common.NewError(-4, "反馈添加失败")
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		log.Error("事务提交失败", err)
+		common.Log.Error("事务提交失败", err)
 		return common.NewError(-5, "系统错误")
 	}
 

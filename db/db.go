@@ -2,10 +2,10 @@ package db
 
 import (
 	"fmt"
+	"gin-synolux/common"
 	"sync"
 
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 )
 
@@ -47,7 +47,7 @@ func openDB(username, password, addr, name, charset string) (*gorm.DB, error) {
 	db, err := gorm.Open("mysql", config)
 
 	if err != nil {
-		log.Errorf(err, "Database connection failed. Database name: %s", name)
+		common.Log.Errorf("Database connection failed. Database name: %s", name)
 		return nil, err
 	}
 	setupDB(db)

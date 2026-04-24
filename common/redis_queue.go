@@ -3,8 +3,6 @@ package common
 import (
 	"encoding/json"
 	"strconv"
-
-	"github.com/lexkong/log"
 )
 
 // 工作任务的结构体
@@ -37,7 +35,7 @@ func worker(id int) {
 		cache_key := "queue1"                           //队列名
 		item, err := Redis.BLPop(0, cache_key).Result() //移出并获取列表的第一个元素
 		if err != nil {
-			log.Error("worker "+strconv.Itoa(id)+" failed", err)
+			Log.Error("worker "+strconv.Itoa(id)+" failed", err)
 			continue
 		}
 
@@ -46,7 +44,7 @@ func worker(id int) {
 		jobJSON := item[1]                          //这里只获取值不获取key
 		err = json.Unmarshal([]byte(jobJSON), &job) //json字符串转struct
 		if err != nil {
-			log.Error("worker "+strconv.Itoa(id)+" failed", err)
+			Log.Error("worker "+strconv.Itoa(id)+" failed", err)
 			continue
 		}
 
@@ -57,7 +55,7 @@ func worker(id int) {
 			body := job.Args["body"].(string)
 			ok := SendMail(to, subject, body)
 			if !ok {
-				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
+				Log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
 				continue
 			}
 		}
@@ -66,10 +64,10 @@ func worker(id int) {
 			body := job.Args["body"].(string)
 			ok := SendSMS(to, body)
 			if !ok {
-				log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
+				Log.Error("worker "+strconv.Itoa(id)+" process: "+job.Action+" failed args: "+jobJSON, err)
 				continue
 			}
 		}
-		log.Info("Worker " + strconv.Itoa(id) + ": Processing job " + jobJSON + ")\n")
+		Log.Info("Worker " + strconv.Itoa(id) + ": Processing job " + jobJSON + ")\n")
 	}
 }

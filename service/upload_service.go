@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"gin-synolux/common"
 	"gin-synolux/dto"
 	"io"
 	"math/rand"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/disintegration/imaging"
 	"github.com/jinzhu/gorm"
-	"github.com/lexkong/log"
 	"github.com/spf13/viper"
 )
 
@@ -58,7 +58,7 @@ func (s *UploadService) Upload(f *multipart.FileHeader, dir string, thumbW, thum
 	fullDir := filepath.Join(uploadDir, dir, dirDate)
 
 	if err := os.MkdirAll(fullDir, 0775); err != nil {
-		log.Error("创建目录失败", err)
+		common.Log.Error("创建目录失败", err)
 		return nil, errors.New("创建目录失败")
 	}
 

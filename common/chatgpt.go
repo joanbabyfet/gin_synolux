@@ -3,7 +3,6 @@ package common
 import (
 	"context"
 
-	"github.com/lexkong/log"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/viper"
 )
@@ -26,7 +25,7 @@ func ChatGPT(keyword string) (bool, string) {
 		},
 	)
 	if err != nil {
-		log.Error("发送ChatGPT失败", err)
+		Log.Error("发送ChatGPT失败", err)
 		return false, ""
 	}
 	result := resp.Choices[0].Message.Content

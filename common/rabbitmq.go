@@ -3,7 +3,6 @@ package common
 import (
 	"errors"
 
-	"github.com/lexkong/log"
 	"github.com/streadway/amqp"
 )
 
@@ -33,13 +32,13 @@ func NewRabbitMQ(queueName, exchangeName, key, mqurl string) (*RabbitMQ, error) 
 	// 创建连接
 	r.conn, err = amqp.Dial(r.MqURL)
 	if err != nil {
-		log.Error("failed to connect to RabbitMQ", err)
+		Log.Error("failed to connect to RabbitMQ", err)
 		return nil, err
 	}
 	// 创建channel
 	r.channel, err = r.conn.Channel()
 	if err != nil {
-		log.Error("failed to open a channel", err)
+		Log.Error("failed to open a channel", err)
 		return nil, err
 	}
 	return r, nil
@@ -57,7 +56,7 @@ func (r *RabbitMQ) Publish(message string) error {
 		nil,
 	)
 	if err != nil {
-		log.Error("failed to declare a queue", err)
+		Log.Error("failed to declare a queue", err)
 		return err
 	}
 	// 发送消息到队列中
@@ -72,7 +71,7 @@ func (r *RabbitMQ) Publish(message string) error {
 		},
 	)
 	if err != nil {
-		log.Error("failed to publish a message", err)
+		Log.Error("failed to publish a message", err)
 		return err
 	}
 	return nil
@@ -90,7 +89,7 @@ func (r *RabbitMQ) Consume() (<-chan amqp.Delivery, error) {
 		nil,   //额外的属性
 	)
 	if err != nil {
-		log.Error("failed to declare a queue", err)
+		Log.Error("failed to declare a queue", err)
 		return nil, err
 	}
 	// 消费消息
@@ -104,7 +103,7 @@ func (r *RabbitMQ) Consume() (<-chan amqp.Delivery, error) {
 		nil,
 	)
 	if err != nil {
-		log.Error("failed to register a consumer", err)
+		Log.Error("failed to register a consumer", err)
 		return nil, err
 	}
 	return msgs, nil
@@ -113,7 +112,7 @@ func (r *RabbitMQ) Consume() (<-chan amqp.Delivery, error) {
 // 错误处理
 // func (r *RabbitMQ) failOnErr(err error, msg string) {
 // 	if err != nil {
-// 		log.Error(msg, err)
+// 		Log.Error(msg, err)
 // 		panic(err)
 // 	}
 // }
@@ -122,5 +121,5 @@ func (r *RabbitMQ) Consume() (<-chan amqp.Delivery, error) {
 func (r *RabbitMQ) Destroy() {
 	r.channel.Close()
 	r.conn.Close()
-	log.Infof("%s,%s is closed!!!", r.ExchangeName, r.QueueName)
+	Log.Infof("%s,%s is closed!!!", r.ExchangeName, r.QueueName)
 }
